@@ -4,7 +4,7 @@
     "events": "Evenementen",
     "create": "Aanmaken",
     "signOut": "Uitloggen",
-    "photoDropAdmin": "Photo Drop Admin",
+    "photoDropAdmin": "CrowdSnap Admin",
     "manageEvents": "Beheer hier je foto drop evenementen.",
     "createEvent": "Evenement Aanmaken",
     "noEventsYet": "Nog geen evenementen",
@@ -131,7 +131,7 @@
   },
   "home": {
     "title1": "Privé Evenement",
-    "title2": "Photo Drop",
+    "title2": "CrowdSnap",
     "subtitle": "Een zelfgehoste, veilige manier om foto's en video's van gasten te verzamelen. Geen cloudopslagkosten, geen openbare links, nul privacyzorgen.",
     "openDashboard": "Dashboard Openen",
     "learnMore": "Meer Weten",

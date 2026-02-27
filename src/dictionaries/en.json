@@ -4,8 +4,8 @@
     "events": "Events",
     "create": "Create",
     "signOut": "Sign Out",
-    "photoDropAdmin": "Photo Drop Admin",
-    "manageEvents": "Manage your photo drop events here.",
+    "photoDropAdmin": "CrowdSnap Admin",
+    "manageEvents": "Manage your CrowdSnap events here.",
     "createEvent": "Create Event",
     "noEventsYet": "No events yet",
     "noEventsDesc": "Create your first event to start generating QR codes and collecting photos from guests.",
@@ -16,7 +16,7 @@
   },
   "createEvent": {
     "title": "Create New Event",
-    "desc": "Fill in the details for your new photo drop event.",
+    "desc": "Fill in the details for your new CrowdSnap event.",
     "eventName": "Event Name",
     "eventNamePlaceholder": "e.g., Sarah & John's Wedding",
     "eventDate": "Event Date",
@@ -122,7 +122,7 @@
   },
   "login": {
     "title": "Admin Login",
-    "desc": "Enter the master password to access the photo drop dashboard",
+    "desc": "Enter the master password to access the CrowdSnap dashboard",
     "password": "Password",
     "placeholder": "Enter password",
     "verifying": "Verifying...",
@@ -131,7 +131,7 @@
   },
   "home": {
     "title1": "Private Event",
-    "title2": "Photo Drop",
+    "title2": "CrowdSnap",
     "subtitle": "A self-hosted, secure way to collect photos and videos from your guests. No cloud storage fees, no public links, zero privacy concerns.",
     "openDashboard": "Open Dashboard",
     "learnMore": "Learn More",

@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Photo Drop",
+  title: "CrowdSnap",
   description: "Share your photos and videos seamlessly.",
 };
 

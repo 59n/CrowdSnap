@@ -4,7 +4,7 @@
     "events": "Eventos",
     "create": "Crear",
     "signOut": "Cerrar sesión",
-    "photoDropAdmin": "Admin Photo Drop",
+    "photoDropAdmin": "Admin CrowdSnap",
     "manageEvents": "Gestiona tus eventos aquí.",
     "createEvent": "Crear Evento",
     "noEventsYet": "Aún no hay eventos",
@@ -131,7 +131,7 @@
   },
   "home": {
     "title1": "Evento Privado",
-    "title2": "Photo Drop",
+    "title2": "CrowdSnap",
     "subtitle": "Una forma segura y autohospedada de recopilar fotos y videos de tus invitados. Sin tarifas de nube, sin enlaces públicos, sin problemas de privacidad.",
     "openDashboard": "Abrir Panel",
     "learnMore": "Aprender Más",
