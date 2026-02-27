@@ -124,6 +124,11 @@ export default function CreateEventPage() {
                 >
                   <option value="en">{t("createEvent.english")}</option>
                   <option value="nl">{t("createEvent.dutch")}</option>
+                  <option value="es">{t("createEvent.spanish")}</option>
+                  <option value="fr">{t("createEvent.french")}</option>
+                  <option value="de">{t("createEvent.german")}</option>
+                  <option value="it">{t("createEvent.italian")}</option>
+                  <option value="pt">{t("createEvent.portuguese")}</option>
                 </select>
               </div>
             </div>

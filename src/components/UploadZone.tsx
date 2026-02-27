@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useState, useEffect } from "react";
 import { UploadCloud, CheckCircle2, AlertCircle, X, Image as ImageIcon } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "./ui/button";
@@ -12,6 +12,22 @@ interface UploadZoneProps {
 }
 
 import { useTranslation } from "./TranslationProvider";
+
+function PreviewImage({ file, className = "w-full h-full object-cover rounded" }: { file: File, className?: string }) {
+  const [url, setUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    const objectUrl = URL.createObjectURL(file);
+    setUrl(objectUrl);
+
+    // Free memory when this component is unmounted
+    return () => URL.revokeObjectURL(objectUrl);
+  }, [file]);
+
+  if (!url) return null;
+  // eslint-disable-next-line @next/next/no-img-element
+  return <img src={url} alt="preview" className={className} />;
+}
 
 export default function UploadZone({ eventId }: UploadZoneProps) {
   const { t } = useTranslation();
@@ -242,8 +258,7 @@ export default function UploadZone({ eventId }: UploadZoneProps) {
                     <div className="w-10 h-10 rounded bg-muted flex items-center justify-center flex-shrink-0">
                         {file.type.startsWith('image/') ? (
                              // Sneak peak for images
-                             // eslint-disable-next-line @next/next/no-img-element
-                            <img src={URL.createObjectURL(file)} alt="preview" className="w-full h-full object-cover rounded" />
+                            <PreviewImage file={file} />
                         ) : (
                             <UploadCloud className="w-5 h-5 text-muted-foreground" />
                         )}
@@ -297,9 +312,7 @@ export default function UploadZone({ eventId }: UploadZoneProps) {
                   <div className="flex items-center gap-3 overflow-hidden">
                     <div className="w-10 h-10 rounded bg-red-200/50 dark:bg-red-950 flex items-center justify-center flex-shrink-0">
                         {file.type.startsWith('image/') ? (
-                             // Sneak peak for images
-                             // eslint-disable-next-line @next/next/no-img-element
-                            <img src={URL.createObjectURL(file)} alt="preview" className="w-full h-full object-cover rounded opacity-70 grayscale" />
+                            <PreviewImage file={file} className="w-full h-full object-cover rounded opacity-70 grayscale" />
                         ) : (
                             <AlertCircle className="w-5 h-5 text-red-500/70" />
                         )}

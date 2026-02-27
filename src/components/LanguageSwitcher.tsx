@@ -36,6 +36,41 @@ export default function LanguageSwitcher() {
         >
           <span className="text-sm">🇳🇱</span> Nederlands
         </DropdownMenuItem>
+        <DropdownMenuItem 
+            className="flex items-center gap-2 cursor-pointer"
+            onClick={() => setLocale("es")}
+            disabled={locale === "es"}
+        >
+          <span className="text-sm">🇪🇸</span> Español
+        </DropdownMenuItem>
+        <DropdownMenuItem 
+            className="flex items-center gap-2 cursor-pointer"
+            onClick={() => setLocale("fr")}
+            disabled={locale === "fr"}
+        >
+          <span className="text-sm">🇫🇷</span> Français
+        </DropdownMenuItem>
+        <DropdownMenuItem 
+            className="flex items-center gap-2 cursor-pointer"
+            onClick={() => setLocale("de")}
+            disabled={locale === "de"}
+        >
+          <span className="text-sm">🇩🇪</span> Deutsch
+        </DropdownMenuItem>
+        <DropdownMenuItem 
+            className="flex items-center gap-2 cursor-pointer"
+            onClick={() => setLocale("it")}
+            disabled={locale === "it"}
+        >
+          <span className="text-sm">🇮🇹</span> Italiano
+        </DropdownMenuItem>
+        <DropdownMenuItem 
+            className="flex items-center gap-2 cursor-pointer"
+            onClick={() => setLocale("pt")}
+            disabled={locale === "pt"}
+        >
+          <span className="text-sm">🇵🇹</span> Português
+        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );

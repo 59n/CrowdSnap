@@ -43,8 +43,8 @@ export default function LoginPage() {
           <CardTitle className="text-2xl font-bold tracking-tight">Admin Login</CardTitle>
           <CardDescription>Enter the master password to access the photo drop dashboard</CardDescription>
         </CardHeader>
-        <form onSubmit={handleLogin}>
-          <CardContent className="space-y-4">
+        <form onSubmit={handleLogin} className="space-y-6">
+          <CardContent>
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
               <Input
@@ -52,7 +52,7 @@ export default function LoginPage() {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
+                placeholder="Enter password"
                 required
                 className="h-12"
               />
