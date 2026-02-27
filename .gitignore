@@ -39,3 +39,17 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+/src/generated/prisma
+
+# CrowdSnap Specific User Data
+/storage/
+/tmp/
+/scripts/stress_test/
+
+# Ensure all env variations are strictly ignored
+.env
+.env.local
+.env.development
+.env.production
+.env.test

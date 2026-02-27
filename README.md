@@ -1,36 +1,56 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# CrowdSnap
 
-## Getting Started
+CrowdSnap is a high-performance, self-hosted media drop application designed for weddings and private events. It empowers event hosts to collect full-resolution memories directly from their guests' phones via QR codes, streaming uploads directly to your local hardware without ever touching public cloud storage.
 
-First, run the development server:
+## Features
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+- **Guest Upload UI**: A beautiful, frictionless dropzone accessible via mobile browser. No app required.
+- **Client-Side Upload Queuing**: Intelligently batches guest uploads sequentially to guarantee the server is never overwhelmed, gracefully handling 5,000+ photo drops dynamically.
+- **Multi-Language Support (i18n)**: Fully localized in both English and Dutch. Guests automatically inherit the event's designated language, with the option to swap manually.
+- **Local Native Storage**: Files stream directly from the HTTP request into native local disk folders via `busboy`, achieving zero memory-loading bloat.
+- **Admin Dashboard**: NextAuth-protected control panel to create events, manage drop links, monitor total disk storage capacity, and safely delete files.
+- **Streaming ZIP Exports**: Admins can download an entire event containing thousands of raw photos as a single packaged `.zip` file—streamed natively to avoid RAM spikes on the Next.js server.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Tech Stack
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+This project is built using modern production-grade architecture:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- **Framework**: [Next.js 16.1.6](https://nextjs.org/) (App Directory) & React 19
+- **Authentication**: [NextAuth 4.24](https://next-auth.js.org/)
+- **Database Architecture**: [Prisma 7.4.1](https://www.prisma.io/)
+- **Database Engine**: PostgreSQL running via Docker (`pg` driver)
+- **Styling**: [Tailwind CSS 4](https://tailwindcss.com/) + custom [shadcn/ui](https://ui.shadcn.com/) components
+- **Animations**: [Framer Motion 12.34](https://www.framer.com/motion/)
+- **Image Processing**: [Sharp 0.34](https://sharp.pixelplumbing.com/) (for generating instant grid thumbnails)
+- **Streaming Pipeline**: `busboy` (for raw multipart data) + `archiver` (for ZIP streaming)
 
-## Learn More
+## Security Assurances
 
-To learn more about Next.js, take a look at the following resources:
+CrowdSnap is designed for **100% data ownership**:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- There is no `/public` fallback. Files are stored securely in a local `/storage` volume on the server.
+- The guest facing pages (`/p/[eventId]`) have _no endpoints available_ to read or list files. A guest can only blindly drop files in.
+- The Admin pages (`/admin`) use absolute file-system read streams protected completely by secure `NextAuth` sessions.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Setup Instructions
 
-## Deploy on Vercel
+1. **Clone the repository** and install dependencies:
+   ```bash
+   npm install
+   ```
+2. **Setup your environment variables**:
+   Create a `.env` file in the root based on your desired configuration. (Ensure `DATABASE_URL`, `NEXTAUTH_SECRET`, and `ADMIN_PASSWORD` are defined).
+3. **Start the Database**:
+   ```bash
+   docker compose up -d
+   ```
+4. **Push Database Schema**:
+   ```bash
+   npx prisma db push
+   ```
+5. **Start the Development Server**:
+   ```bash
+   npm run dev
+   ```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Explore your new local environment at `http://localhost:3000/admin`.
