@@ -101,7 +101,7 @@ export default function CreateEventPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="maxSize">Max File Size (MB)</Label>
+                <Label htmlFor="maxSize">{t("editEvent.maxFileSize")}</Label>
                 <Input
                   id="maxSize"
                   type="number"

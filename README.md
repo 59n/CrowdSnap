@@ -6,9 +6,10 @@ CrowdSnap is a high-performance, self-hosted media drop application designed for
 
 - **Guest Upload UI**: A beautiful, frictionless dropzone accessible via mobile browser. No app required.
 - **Client-Side Upload Queuing**: Intelligently batches guest uploads sequentially to guarantee the server is never overwhelmed, gracefully handling 5,000+ photo drops dynamically.
-- **Multi-Language Support (i18n)**: Fully localized in both English and Dutch. Guests automatically inherit the event's designated language, with the option to swap manually.
+- **Global Multi-Language Support (i18n)**: Fully localized natively in 7 languages (English, Dutch, Spanish, French, German, Italian, Portuguese) automatically inherited from browser settings or customized via toggles.
 - **Local Native Storage**: Files stream directly from the HTTP request into native local disk folders via `busboy`, achieving zero memory-loading bloat.
-- **Admin Dashboard**: NextAuth-protected control panel to create events, manage drop links, monitor total disk storage capacity, and safely delete files.
+- **Admin Dashboard**: NextAuth-protected control panel to create events, manage drop links, set max upload file limits, monitor total disk storage capacity, and safely delete files.
+- **QR Code Exporter**: Natively renders, customizes (White/Black/Transparent background matching), and exports high-resolution scalable vectors (SVG) or PNGs of the drop link QR code for direct printing.
 - **Streaming ZIP Exports**: Admins can download an entire event containing thousands of raw photos as a single packaged `.zip` file—streamed natively to avoid RAM spikes on the Next.js server.
 
 ## Tech Stack

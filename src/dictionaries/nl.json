@@ -11,7 +11,8 @@
     "noEventsDesc": "Maak je eerste evenement aan om QR-codes te genereren en foto's van gasten te verzamelen.",
     "active": "Actief",
     "inactive": "Inactief",
-    "uploads": "uploads"
+    "uploads": "uploads",
+    "editDetails": "Details Bewerken"
   },
   "createEvent": {
     "title": "Nieuw Evenement Aanmaken",
@@ -27,7 +28,12 @@
     "cancel": "Annuleren",
     "creating": "Aanmaken...",
     "success": "Evenement succesvol aangemaakt.",
-    "error": "Aanmaken evenement mislukt."
+    "error": "Aanmaken evenement mislukt.",
+    "spanish": "Spaans",
+    "french": "Frans",
+    "german": "Duits",
+    "italian": "Italiaans",
+    "portuguese": "Portugees"
   },
   "eventDetail": {
     "guestView": "Gastenweergave",
@@ -90,6 +96,51 @@
     "defaultDescription": "Plaats hieronder je foto's en video's om ze met de host te delen. Hoge kwaliteit weergave blijft behouden.",
     "skippedFiles": "Overgeslagen bestanden",
     "unsupportedFormat": "Niet-ondersteund formaat",
-    "dismiss": "Sluiten"
+    "dismiss": "Sluiten",
+    "failedUpload": "Bestand uploaden mislukt"
+  },
+  "editEvent": {
+    "title": "Event Bewerken",
+    "desc": "Bewerk de evenementdetails hier. Klik op opslaan wanneer u klaar bent.",
+    "customCoverIcon": "Aangepast Omslagicoon (Optioneel)",
+    "customCoverIconDesc": "Vervangt het standaard camera-icoon voor gasten.",
+    "saving": "Opslaan...",
+    "saveChanges": "Wijzigingen opslaan",
+    "maxFileSize": "Max bestandsgrootte (MB)",
+    "success": "Evenement succesvol bijgewerkt",
+    "error": "Fout bij bijwerken evenement"
+  },
+  "qrExport": {
+    "style": "Stijl",
+    "qrBackground": "QR Achtergrond",
+    "white": "Wit",
+    "black": "Zwart",
+    "transparent": "Transparant",
+    "download": "Downloaden",
+    "downloadPng": "Download als hoge res PNG",
+    "downloadSvg": "Download als SVG (Vector)"
+  },
+  "login": {
+    "title": "Admin Inloggen",
+    "desc": "Voer het hoofdwachtwoord in om toegang te krijgen tot het dashboard",
+    "password": "Wachtwoord",
+    "placeholder": "Voer wachtwoord in",
+    "verifying": "Controleren...",
+    "signIn": "Inloggen",
+    "invalid": "Ongeldig wachtwoord"
+  },
+  "home": {
+    "title1": "Privé Evenement",
+    "title2": "Photo Drop",
+    "subtitle": "Een zelfgehoste, veilige manier om foto's en video's van gasten te verzamelen. Geen cloudopslagkosten, geen openbare links, nul privacyzorgen.",
+    "openDashboard": "Dashboard Openen",
+    "learnMore": "Meer Weten",
+    "feature1Title": "100% Privé",
+    "feature1Desc": "Bestanden worden direct lokaal opgeslagen en raken nooit openbare CDN's.",
+    "feature2Title": "Volledige Resolutie",
+    "feature2Desc": "Verzamel de originele, ongecomprimeerde foto's in hoge kwaliteit direct van telefoons.",
+    "feature3Title": "Geen Limieten",
+    "feature3Desc": "Stream enorme videobestanden direct naar de schijf zonder servergeheugen te overbelasten.",
+    "footer": "Gebouwd voor jouw privé evenementen."
   }
 }

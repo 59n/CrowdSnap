@@ -11,7 +11,8 @@
     "noEventsDesc": "Créez votre événement pour générer un code QR et collecter des photos.",
     "active": "Actif",
     "inactive": "Inactif",
-    "uploads": "téléchargements"
+    "uploads": "téléchargements",
+    "editDetails": "Modifier Détails"
   },
   "createEvent": {
     "title": "Créer un Événement",
@@ -24,11 +25,11 @@
     "guestLanguage": "Langue des Invités",
     "english": "Anglais (English)",
     "dutch": "Néerlandais (Nederlands)",
-    "spanish": "Espagnol (Español)",
+    "spanish": "Espagnol",
     "french": "Français",
-    "german": "Allemand (Deutsch)",
-    "italian": "Italien (Italiano)",
-    "portuguese": "Portugais (Português)",
+    "german": "Allemand",
+    "italian": "Italien",
+    "portuguese": "Portugais",
     "cancel": "Annuler",
     "creating": "Création...",
     "success": "Événement créé avec succès.",
@@ -95,6 +96,51 @@
     "defaultDescription": "Déposez vos photos et vidéos ici pour les partager avec l'hôte.",
     "skippedFiles": "Fichiers ignorés",
     "unsupportedFormat": "Format non supporté",
-    "dismiss": "Fermer"
+    "dismiss": "Fermer",
+    "failedUpload": "Échec du téléchargement du fichier"
+  },
+  "editEvent": {
+    "title": "Modifier Événement",
+    "desc": "Apportez des modifications ici. Cliquez sur sauver pour terminer.",
+    "customCoverIcon": "Icône de Couverture (Optionnel)",
+    "customCoverIconDesc": "Remplace l'icône de caméra par défaut pour les invités.",
+    "saving": "Sauvegarde...",
+    "saveChanges": "Enregistrer",
+    "maxFileSize": "Taille max. du fichier (Mo)",
+    "success": "Événement mis à jour avec succès",
+    "error": "Erreur lors de la mise à jour de l'événement"
+  },
+  "qrExport": {
+    "style": "Style",
+    "qrBackground": "Fond du QR",
+    "white": "Blanc",
+    "black": "Noir",
+    "transparent": "Transparent",
+    "download": "Télécharger",
+    "downloadPng": "Télécharger en PNG",
+    "downloadSvg": "Télécharger en SVG (Vectoriel)"
+  },
+  "login": {
+    "title": "Connexion Administrateur",
+    "desc": "Entrez le mot de passe maître pour accéder au tableau de bord",
+    "password": "Mot de passe",
+    "placeholder": "Entrer le mot de passe",
+    "verifying": "Vérification...",
+    "signIn": "Se connecter",
+    "invalid": "Mot de passe invalide"
+  },
+  "home": {
+    "title1": "Événement Privé",
+    "title2": "Photo Drop",
+    "subtitle": "Un moyen auto-hébergé et sécurisé de collecter les photos et vidéos de vos invités. Pas de frais de cloud, pas de liens publics, zéro souci de confidentialité.",
+    "openDashboard": "Ouvrir le Tableau de Bord",
+    "learnMore": "En Savoir Plus",
+    "feature1Title": "100% Privé",
+    "feature1Desc": "Les fichiers sont sauvegardés directement sur le stockage local et ne touchent jamais les CDN publics.",
+    "feature2Title": "Pleine Résolution",
+    "feature2Desc": "Collectez les actifs originaux, non compressés et de haute qualité depuis les téléphones mobiles.",
+    "feature3Title": "Aucune Limite de Taille",
+    "feature3Desc": "Diffusez des fichiers vidéo géants directement sur le disque sans encombrer la mémoire du serveur.",
+    "footer": "Conçu pour vos événements privés."
   }
 }

@@ -11,7 +11,8 @@
     "noEventsDesc": "Crie seu primeiro evento para gerar códigos QR e coletar fotos.",
     "active": "Ativo",
     "inactive": "Inativo",
-    "uploads": "uploads"
+    "uploads": "uploads",
+    "editDetails": "Editar Detalhes"
   },
   "createEvent": {
     "title": "Criar Novo Evento",
@@ -24,9 +25,9 @@
     "guestLanguage": "Idioma da Página de Convidados",
     "english": "Inglês (English)",
     "dutch": "Holandês (Nederlands)",
-    "spanish": "Espanhol (Español)",
-    "french": "Francês (Français)",
-    "german": "Alemão (Deutsch)",
+    "spanish": "Espanhol",
+    "french": "Francês",
+    "german": "Alemão",
     "italian": "Italiano",
     "portuguese": "Português",
     "cancel": "Cancelar",
@@ -95,6 +96,51 @@
     "defaultDescription": "Deixe suas fotos e vídeos aqui para compartilhá-los com o anfitrião.",
     "skippedFiles": "Arquivos ignorados",
     "unsupportedFormat": "Formato não suportado",
-    "dismiss": "Fechar"
+    "dismiss": "Fechar",
+    "failedUpload": "Falha ao enviar arquivo"
+  },
+  "editEvent": {
+    "title": "Editar Evento",
+    "desc": "Faça alterações no evento aqui. Clique em salvar quando terminar.",
+    "customCoverIcon": "Ícone de Capa Personalizado (Opcional)",
+    "customCoverIconDesc": "Substitui o ícone de câmera padrão na visão do convidado.",
+    "saving": "Salvando...",
+    "saveChanges": "Salvar alterações",
+    "maxFileSize": "Tamanho máx. do arquivo (MB)",
+    "success": "Evento atualizado com sucesso",
+    "error": "Erro ao atualizar evento"
+  },
+  "qrExport": {
+    "style": "Estilo",
+    "qrBackground": "Fundo do QR",
+    "white": "Branco",
+    "black": "Preto",
+    "transparent": "Transparente",
+    "download": "Baixar",
+    "downloadPng": "Baixar como PNG alta res",
+    "downloadSvg": "Baixar como SVG (Vetor)"
+  },
+  "login": {
+    "title": "Login de Administrador",
+    "desc": "Insira a senha mestra para acessar o painel",
+    "password": "Senha",
+    "placeholder": "Inserir senha",
+    "verifying": "Verificando...",
+    "signIn": "Entrar",
+    "invalid": "Senha inválida"
+  },
+  "home": {
+    "title1": "Evento Privado",
+    "title2": "Photo Drop",
+    "subtitle": "Uma maneira auto-hospedada e segura de coletar fotos e vídeos de seus convidados. Sem taxas de armazenamento em nuvem, sem links públicos, zero preocupações com privacidade.",
+    "openDashboard": "Abrir Painel",
+    "learnMore": "Saber Mais",
+    "feature1Title": "100% Privado",
+    "feature1Desc": "Os arquivos são salvos diretamente no armazenamento local e nunca tocam CDNs públicos.",
+    "feature2Title": "Resolução Máxima",
+    "feature2Desc": "Colete os arquivos originais e não compactados de alta qualidade de telefones móveis.",
+    "feature3Title": "Sem Limites de Tamanho",
+    "feature3Desc": "Transmita arquivos de vídeo gigantes diretamente para o disco sem sobrecarregar a memória do servidor.",
+    "footer": "Feito para seus eventos privados."
   }
 }

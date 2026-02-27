@@ -11,7 +11,8 @@
     "noEventsDesc": "Erstelle dein erstes Event, um QR-Codes zu generieren.",
     "active": "Aktiv",
     "inactive": "Inaktiv",
-    "uploads": "Uploads"
+    "uploads": "Uploads",
+    "editDetails": "Details bearbeiten"
   },
   "createEvent": {
     "title": "Neues Event erstellen",
@@ -24,11 +25,11 @@
     "guestLanguage": "Gäste Sprache",
     "english": "Englisch (English)",
     "dutch": "Niederländisch (Nederlands)",
-    "spanish": "Spanisch (Español)",
-    "french": "Französisch (Français)",
+    "spanish": "Spanisch",
+    "french": "Französisch",
     "german": "Deutsch",
-    "italian": "Italienisch (Italiano)",
-    "portuguese": "Portugiesisch (Português)",
+    "italian": "Italienisch",
+    "portuguese": "Portugiesisch",
     "cancel": "Abbrechen",
     "creating": "Erstellen...",
     "success": "Event erfolgreich erstellt.",
@@ -95,6 +96,51 @@
     "defaultDescription": "Ziehe deine Fotos und Videos hierher, um sie mit dem Gastgeber zu teilen.",
     "skippedFiles": "Übersprungene Dateien",
     "unsupportedFormat": "Nicht unterstütztes Format",
-    "dismiss": "Schließen"
+    "dismiss": "Schließen",
+    "failedUpload": "Fehler beim Hochladen der Datei"
+  },
+  "editEvent": {
+    "title": "Event bearbeiten",
+    "desc": "Ändere das Event hier. Klicke Speichern um fortzufahren.",
+    "customCoverIcon": "Eigenes Titelbild (Optional)",
+    "customCoverIconDesc": "Überschreibt das Standard-Kamera-Symbol für Gäste.",
+    "saving": "Speichern...",
+    "saveChanges": "Änderungen speichern",
+    "maxFileSize": "Max. Dateigröße (MB)",
+    "success": "Event erfolgreich aktualisiert",
+    "error": "Fehler beim Aktualisieren des Events"
+  },
+  "qrExport": {
+    "style": "Stil",
+    "qrBackground": "QR-Hintergrund",
+    "white": "Weiß",
+    "black": "Schwarz",
+    "transparent": "Transparent",
+    "download": "Herunterladen",
+    "downloadPng": "Als hochauflösendes PNG",
+    "downloadSvg": "Als SVG (Vektor) speichern"
+  },
+  "login": {
+    "title": "Admin-Login",
+    "desc": "Geben Sie das Master-Passwort ein, um auf das Dashboard zuzugreifen",
+    "password": "Passwort",
+    "placeholder": "Passwort eingeben",
+    "verifying": "Überprüfung...",
+    "signIn": "Anmelden",
+    "invalid": "Ungültiges Passwort"
+  },
+  "home": {
+    "title1": "Privates Event",
+    "title2": "Photo Drop",
+    "subtitle": "Eine selbst gehostete, sichere Möglichkeit, Fotos und Videos von Ihren Gästen zu sammeln. Keine Cloud-Speichergebühren, keine öffentlichen Links, null Datenschutzbedenken.",
+    "openDashboard": "Dashboard Öffnen",
+    "learnMore": "Mehr Erfahren",
+    "feature1Title": "100% Privat",
+    "feature1Desc": "Dateien werden direkt auf dem lokalen Speicher gespeichert und berühren niemals öffentliche CDNs.",
+    "feature2Title": "Volle Auflösung",
+    "feature2Desc": "Sammeln Sie die originalen, unkomprimierten und hochwertigen Dateien von Mobiltelefonen.",
+    "feature3Title": "Keine Größenbeschränkungen",
+    "feature3Desc": "Streamen Sie riesige Videodateien direkt auf die Festplatte, ohne den Arbeitsspeicher des Servers zu überlasten.",
+    "footer": "Entwickelt für Ihre privaten Events."
   }
 }

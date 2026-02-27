@@ -11,7 +11,8 @@
     "noEventsDesc": "Crea il tuo primo evento per generare i QR code.",
     "active": "Attivo",
     "inactive": "Inattivo",
-    "uploads": "caricamenti"
+    "uploads": "caricamenti",
+    "editDetails": "Modifica Dettagli"
   },
   "createEvent": {
     "title": "Crea Nuovo Evento",
@@ -24,11 +25,11 @@
     "guestLanguage": "Lingua degli Ospiti",
     "english": "Inglese (English)",
     "dutch": "Olandese (Nederlands)",
-    "spanish": "Spagnolo (Español)",
-    "french": "Francese (Français)",
-    "german": "Tedesco (Deutsch)",
+    "spanish": "Spagnolo",
+    "french": "Francese",
+    "german": "Tedesco",
     "italian": "Italiano",
-    "portuguese": "Portoghese (Português)",
+    "portuguese": "Portoghese",
     "cancel": "Annulla",
     "creating": "Creazione...",
     "success": "Evento creato con successo.",
@@ -95,6 +96,51 @@
     "defaultDescription": "Lascia qui le tue foto e i tuoi video per condividerli con l'organizzatore.",
     "skippedFiles": "File Ignorati",
     "unsupportedFormat": "Formato non supportato",
-    "dismiss": "Chiudi"
+    "dismiss": "Chiudi",
+    "failedUpload": "Caricamento file fallito"
+  },
+  "editEvent": {
+    "title": "Modifica Evento",
+    "desc": "Apporta modifiche qui. Clicca su salva quando hai finito.",
+    "customCoverIcon": "Icona di Copertina Personalizzata (Opzionale)",
+    "customCoverIconDesc": "Sostituisce l'icona della fotocamera per gli ospiti.",
+    "saving": "Salvataggio...",
+    "saveChanges": "Salva modifiche",
+    "maxFileSize": "Dimensione max file (MB)",
+    "success": "Evento aggiornato con successo",
+    "error": "Errore durante l'aggiornamento dell'evento"
+  },
+  "qrExport": {
+    "style": "Stile",
+    "qrBackground": "Sfondo del QR",
+    "white": "Bianco",
+    "black": "Nero",
+    "transparent": "Trasparente",
+    "download": "Scarica",
+    "downloadPng": "Scarica come PNG",
+    "downloadSvg": "Scarica come SVG (Vettoriale)"
+  },
+  "login": {
+    "title": "Accesso Amministratore",
+    "desc": "Inserisci la password principale per accedere alla dashboard",
+    "password": "Password",
+    "placeholder": "Inserisci password",
+    "verifying": "Verifica...",
+    "signIn": "Accedi",
+    "invalid": "Password non valida"
+  },
+  "home": {
+    "title1": "Evento Privato",
+    "title2": "Photo Drop",
+    "subtitle": "Un modo auto-ospitato e sicuro per raccogliere foto e video dai tuoi ospiti. Nessun costo di archiviazione cloud, nessun link pubblico, nessun problema di privacy.",
+    "openDashboard": "Apri Dashboard",
+    "learnMore": "Scopri di Più",
+    "feature1Title": "100% Privato",
+    "feature1Desc": "I file vengono salvati direttamente in locale e non toccano mai CDN pubbliche.",
+    "feature2Title": "Risoluzione Massima",
+    "feature2Desc": "Raccogli file originali, non compressi e di alta qualità dai telefoni cellulari.",
+    "feature3Title": "Nessun Limite di Dimensioni",
+    "feature3Desc": "Trasferisci file video giganti direttamente su disco senza sovraccaricare la memoria del server.",
+    "footer": "Realizzato per i tuoi eventi privati."
   }
 }

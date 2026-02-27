@@ -11,7 +11,8 @@
     "noEventsDesc": "Create your first event to start generating QR codes and collecting photos from guests.",
     "active": "Active",
     "inactive": "Inactive",
-    "uploads": "uploads"
+    "uploads": "uploads",
+    "editDetails": "Edit Details"
   },
   "createEvent": {
     "title": "Create New Event",
@@ -27,7 +28,12 @@
     "cancel": "Cancel",
     "creating": "Creating...",
     "success": "Event created successfully.",
-    "error": "Failed to create event."
+    "error": "Failed to create event.",
+    "spanish": "Spanish",
+    "french": "French",
+    "german": "German",
+    "italian": "Italian",
+    "portuguese": "Portuguese"
   },
   "eventDetail": {
     "guestView": "Guest View",
@@ -90,6 +96,51 @@
     "defaultDescription": "Drop your photos and videos below to share them with the host. High quality formatting is preserved.",
     "skippedFiles": "Skipped Files",
     "unsupportedFormat": "Unsupported format",
-    "dismiss": "Dismiss"
+    "dismiss": "Dismiss",
+    "failedUpload": "Failed to upload file"
+  },
+  "editEvent": {
+    "title": "Edit Event",
+    "desc": "Make changes to your event details here. Click save when you're done.",
+    "customCoverIcon": "Custom Cover Icon (Optional)",
+    "customCoverIconDesc": "Overrides the default camera icon on the guest view.",
+    "saving": "Saving...",
+    "saveChanges": "Save changes",
+    "maxFileSize": "Max File Size (MB)",
+    "success": "Event updated successfully",
+    "error": "Error updating event"
+  },
+  "qrExport": {
+    "style": "Style",
+    "qrBackground": "QR Background",
+    "white": "White",
+    "black": "Black",
+    "transparent": "Transparent",
+    "download": "Download",
+    "downloadPng": "Download as high-res PNG",
+    "downloadSvg": "Download as SVG (Vector)"
+  },
+  "login": {
+    "title": "Admin Login",
+    "desc": "Enter the master password to access the photo drop dashboard",
+    "password": "Password",
+    "placeholder": "Enter password",
+    "verifying": "Verifying...",
+    "signIn": "Sign In",
+    "invalid": "Invalid password"
+  },
+  "home": {
+    "title1": "Private Event",
+    "title2": "Photo Drop",
+    "subtitle": "A self-hosted, secure way to collect photos and videos from your guests. No cloud storage fees, no public links, zero privacy concerns.",
+    "openDashboard": "Open Dashboard",
+    "learnMore": "Learn More",
+    "feature1Title": "100% Private",
+    "feature1Desc": "Files are saved directly to local storage and never touch public CDNs.",
+    "feature2Title": "Full Resolution",
+    "feature2Desc": "Collect the original, uncompressed high-quality assets from mobile phones.",
+    "feature3Title": "No Size Limits",
+    "feature3Desc": "Stream giant video files directly to disk without bloating server memory.",
+    "footer": "Built for your private events."
   }
 }

@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { ArrowLeft, Download, ExternalLink, QrCode } from "lucide-react";
 import Link from "next/link";
-import { QRCodeSVG } from "qrcode.react";
+import QRExportWidget from "./QRExportWidget";
 import UploadGrid from "./UploadGrid";
 import EditEventDialog from "./EditEventDialog";
 import { getDictionary, getLocale } from "@/lib/i18n";
@@ -81,9 +81,7 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
             <CardDescription>{t.guestQrDesc}</CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
-            <div className="bg-white p-3 rounded-xl shadow-sm border shrink-0">
-              <QRCodeSVG value={uploadUrl} size={120} />
-            </div>
+            <QRExportWidget url={uploadUrl} />
             <div className="w-full flex-1 space-y-2 mt-2 sm:mt-0">
               <p className="text-sm font-medium text-center sm:text-left">{t.directLink}</p>
               <div className="px-3 py-3 bg-muted rounded-md text-xs sm:text-sm font-mono break-all selection:bg-primary/20 text-center sm:text-left">

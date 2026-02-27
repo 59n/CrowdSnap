@@ -122,9 +122,9 @@ export default function UploadZone({ eventId }: UploadZoneProps) {
             } else {
               try {
                 const res = JSON.parse(xhr.responseText);
-                toast.error(res.error || `Failed to upload ${file.name}`);
+                toast.error(res.error || `${t("guest.failedUpload")} ${file.name}`);
               } catch {
-                toast.error(`Failed to upload ${file.name}`);
+                toast.error(`${t("guest.failedUpload")} ${file.name}`);
               }
               failCount++;
               resolve(false);

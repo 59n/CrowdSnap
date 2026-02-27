@@ -12,7 +12,7 @@ export async function PATCH(request: Request, props: { params: Promise<{ id: str
   }
 
   try {
-    const { name, description, language } = await request.json();
+    const { name, description, language, maxFileSizeMB } = await request.json();
 
     const event = await prisma.event.update({
       where: { id: params.id },
@@ -20,6 +20,7 @@ export async function PATCH(request: Request, props: { params: Promise<{ id: str
         name,
         description,
         language,
+        maxFileSizeMB
       }
     });
 
