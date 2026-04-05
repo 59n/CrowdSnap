@@ -5,9 +5,12 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
+import { ArrowLeft, CalendarDays, Globe, FileUp } from "lucide-react";
 import Link from "next/link";
 import { useTranslation } from "@/components/TranslationProvider";
 
@@ -38,103 +41,148 @@ export default function CreateEventPage() {
       });
 
       if (!res.ok) throw new Error("Failed to create event");
-      
+
       const data = await res.json();
       toast.success(t("createEvent.success"));
       router.push(`/admin/events/${data.id}`);
       router.refresh();
-    } catch (error) {
+    } catch {
       toast.error(t("createEvent.error"));
       setLoading(false);
     }
   };
 
+  const languages = [
+    { value: "en", label: t("createEvent.english") },
+    { value: "nl", label: t("createEvent.dutch") },
+    { value: "es", label: t("createEvent.spanish") },
+    { value: "fr", label: t("createEvent.french") },
+    { value: "de", label: t("createEvent.german") },
+    { value: "it", label: t("createEvent.italian") },
+    { value: "pt", label: t("createEvent.portuguese") },
+  ];
+
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" asChild className="rounded-full">
+    <div className="max-w-2xl space-y-6">
+      {/* Header */}
+      <div className="flex items-center gap-3">
+        <Button variant="ghost" size="icon" asChild className="rounded-full h-8 w-8 shrink-0">
           <Link href="/admin">
-            <ArrowLeft className="w-5 h-5" />
+            <ArrowLeft className="w-4 h-4" />
           </Link>
         </Button>
-        <h1 className="text-3xl font-bold tracking-tight">{t("createEvent.title")}</h1>
+        <div>
+          <h1 className="text-xl font-bold tracking-tight">{t("createEvent.title")}</h1>
+          <p className="text-xs text-muted-foreground mt-0.5">{t("createEvent.desc")}</p>
+        </div>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>{t("createEvent.desc")}</CardTitle>
-        </CardHeader>
-        <CardContent>
+      <Card className="border-border/60 shadow-sm">
+        <CardContent className="pt-6">
           <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="space-y-2">
-              <Label htmlFor="name">{t("createEvent.eventName")}</Label>
-              <Input
-                id="name"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder={t("createEvent.eventNamePlaceholder")}
-                required
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="description">{t("createEvent.description")}</Label>
-              <textarea
-                id="description"
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                placeholder={t("createEvent.descriptionPlaceholder")}
-                className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-              />
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <Label htmlFor="date">{t("createEvent.eventDate")}</Label>
+            {/* Event basics */}
+            <div className="space-y-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="name" className="text-sm font-medium">
+                  {t("createEvent.eventName")}
+                </Label>
                 <Input
-                  id="date"
-                  type="date"
-                  value={formData.date}
-                  onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                  id="name"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  placeholder={t("createEvent.eventNamePlaceholder")}
                   required
+                  className="h-9"
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="maxSize">{t("editEvent.maxFileSize")}</Label>
-                <Input
-                  id="maxSize"
-                  type="number"
-                  min="1"
-                  max="2000"
-                  value={formData.maxFileSizeMB}
-                  onChange={(e) => setFormData({ ...formData, maxFileSizeMB: parseInt(e.target.value) || 100 })}
-                  required
+              <div className="space-y-1.5">
+                <Label htmlFor="description" className="text-sm font-medium">
+                  {t("createEvent.description")}
+                  <span className="text-muted-foreground font-normal ml-1">({t("createEvent.optional") ?? "optional"})</span>
+                </Label>
+                <Textarea
+                  id="description"
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  placeholder={t("createEvent.descriptionPlaceholder")}
+                  className="resize-none min-h-[80px]"
                 />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="language">{t("createEvent.guestLanguage")}</Label>
-                <select
-                  id="language"
-                  value={formData.language}
-                  onChange={(e) => setFormData({ ...formData, language: e.target.value })}
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                  required
-                >
-                  <option value="en">{t("createEvent.english")}</option>
-                  <option value="nl">{t("createEvent.dutch")}</option>
-                  <option value="es">{t("createEvent.spanish")}</option>
-                  <option value="fr">{t("createEvent.french")}</option>
-                  <option value="de">{t("createEvent.german")}</option>
-                  <option value="it">{t("createEvent.italian")}</option>
-                  <option value="pt">{t("createEvent.portuguese")}</option>
-                </select>
               </div>
             </div>
 
-            <div className="pt-4 flex justify-end">
-              <Button type="submit" disabled={loading} size="lg">
+            <Separator className="border-border/40" />
+
+            {/* Date & settings */}
+            <div className="space-y-4">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                <CalendarDays className="w-3.5 h-3.5" /> Settings
+              </p>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label htmlFor="date" className="text-sm font-medium">
+                    {t("createEvent.eventDate")}
+                  </Label>
+                  <Input
+                    id="date"
+                    type="date"
+                    value={formData.date}
+                    onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                    required
+                    className="h-9"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="maxSize" className="text-sm font-medium flex items-center gap-1.5">
+                    <FileUp className="w-3.5 h-3.5" /> {t("editEvent.maxFileSize")}
+                  </Label>
+                  <div className="relative">
+                    <Input
+                      id="maxSize"
+                      type="number"
+                      min="1"
+                      max="2000"
+                      value={formData.maxFileSizeMB}
+                      onChange={(e) => setFormData({ ...formData, maxFileSizeMB: parseInt(e.target.value) || 100 })}
+                      required
+                      className="h-9 pr-12"
+                    />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">MB</span>
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-sm font-medium flex items-center gap-1.5">
+                    <Globe className="w-3.5 h-3.5" /> {t("createEvent.guestLanguage")}
+                  </Label>
+                  <Select
+                    value={formData.language}
+                    onValueChange={(value) => setFormData({ ...formData, language: value })}
+                  >
+                    <SelectTrigger className="h-9">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {languages.map((lang) => (
+                        <SelectItem key={lang.value} value={lang.value}>
+                          {lang.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </div>
+
+            <Separator className="border-border/40" />
+
+            <div className="flex justify-end gap-3">
+              <Button type="button" variant="outline" size="sm" asChild>
+                <Link href="/admin">{t("createEvent.cancel") ?? "Cancel"}</Link>
+              </Button>
+              <Button type="submit" disabled={loading} size="sm">
                 {loading ? t("createEvent.creating") : t("createEvent.createEvent")}
               </Button>
             </div>

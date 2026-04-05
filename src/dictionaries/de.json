@@ -52,6 +52,7 @@
     "images": "Bilder",
     "videos": "Videos",
     "deleteAll": "Alles löschen",
+    "delete": "Löschen",
     "deleting": "Löschen...",
     "page": "Seite",
     "of": "von",
@@ -97,7 +98,13 @@
     "skippedFiles": "Übersprungene Dateien",
     "unsupportedFormat": "Nicht unterstütztes Format",
     "dismiss": "Schließen",
-    "failedUpload": "Fehler beim Hochladen der Datei"
+    "failedUpload": "Fehler beim Hochladen der Datei",
+    "yourUploads": "Ihre Fotos",
+    "yourUploadsDesc": "Nur auf diesem Gerät sichtbar. Tippen Sie auf ein Foto, um es zu entfernen.",
+    "removeUpload": "Entfernen",
+    "confirmRemove": "Diese Datei aus dem Event entfernen?",
+    "removedUpload": "Entfernt",
+    "failedRemove": "Entfernen fehlgeschlagen"
   },
   "editEvent": {
     "title": "Event bearbeiten",

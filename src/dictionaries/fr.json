@@ -52,6 +52,7 @@
     "images": "Images",
     "videos": "Vidéos",
     "deleteAll": "Tout Supprimer",
+    "delete": "Supprimer",
     "deleting": "Suppression...",
     "page": "Page",
     "of": "de",
@@ -97,7 +98,13 @@
     "skippedFiles": "Fichiers ignorés",
     "unsupportedFormat": "Format non supporté",
     "dismiss": "Fermer",
-    "failedUpload": "Échec du téléchargement du fichier"
+    "failedUpload": "Échec du téléchargement du fichier",
+    "yourUploads": "Vos photos",
+    "yourUploadsDesc": "Visible uniquement depuis cet appareil. Appuyez sur une photo pour la supprimer.",
+    "removeUpload": "Supprimer",
+    "confirmRemove": "Supprimer ce fichier de l'événement ?",
+    "removedUpload": "Supprimé",
+    "failedRemove": "Échec de la suppression"
   },
   "editEvent": {
     "title": "Modifier Événement",

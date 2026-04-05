@@ -7,11 +7,46 @@ import path from 'path';
 
 const BASE_PATH = process.env.STORAGE_PATH || './storage';
 
-export async function DELETE(request: Request, props: { params: Promise<{ id: string }> }) {
+export async function GET(request: Request, props: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
-  
   if (!session || session.user?.role !== 'ADMIN') {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  const { id: eventId } = await props.params;
+  const { searchParams } = new URL(request.url);
+  const since = searchParams.get('since');
+
+  const uploads = await prisma.upload.findMany({
+    where: {
+      eventId,
+      ...(since ? { createdAt: { gt: new Date(since) } } : {}),
+    },
+    orderBy: { createdAt: 'desc' },
+    select: {
+      id: true,
+      originalName: true,
+      mimeType: true,
+      size: true,
+      createdAt: true,
+      deviceId: true,
+    },
+  });
+
+  return NextResponse.json({ uploads });
+}
+
+export async function DELETE(request: Request, props: { params: Promise<{ id: string }> }) {
+  const session = await getServerSession(authOptions);
+
+  if (!session || session.user?.role !== 'ADMIN') {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  // Require password re-confirmation for mass deletion
+  const confirmPassword = request.headers.get('x-confirm-password');
+  if (!confirmPassword || confirmPassword !== process.env.ADMIN_PASSWORD) {
+    return NextResponse.json({ error: 'Invalid password' }, { status: 403 });
   }
 
   const { id: eventId } = await props.params;

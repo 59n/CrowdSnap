@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import fs from 'fs';
-import os from 'os';
+import { getWriteRoot, isReplicaAvailable, REPLICA_PATH } from '@/lib/storage';
 
 const BASE_PATH = process.env.STORAGE_PATH || './storage';
 
@@ -28,13 +28,18 @@ export async function GET() {
     const usedSpace = totalSpace - freeSpace;
     const usagePercentage = (usedSpace / totalSpace) * 100;
 
+    const { isOverflow } = getWriteRoot();
+    const replicaReady = isReplicaAvailable();
+
     return NextResponse.json({
         totalGB: totalSpace,
         usedGB: usedSpace,
         freeGB: freeSpace,
         percentage: usagePercentage,
         isWarning: usagePercentage > 85,
-        isCritical: usagePercentage > 95
+        isCritical: usagePercentage > 95,
+        isOverflow,
+        overflowReady: !!REPLICA_PATH && replicaReady,
     });
 
   } catch (error) {

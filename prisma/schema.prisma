@@ -73,6 +73,7 @@ model Upload {
   mimeType     String
   size         Int
   relativePath String
+  deviceId     String?
   createdAt    DateTime @default(now())
 
   event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)

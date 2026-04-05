@@ -42,6 +42,11 @@ next-env.d.ts
 
 /src/generated/prisma
 
+docker-compose.override.yml
+.agents/
+skills-lock.json
+gallery.html
+
 # CrowdSnap Specific User Data
 /storage/
 /tmp/

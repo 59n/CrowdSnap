@@ -52,6 +52,7 @@
     "images": "Imágenes",
     "videos": "Videos",
     "deleteAll": "Eliminar Todo",
+    "delete": "Eliminar",
     "deleting": "Eliminando...",
     "page": "Página",
     "of": "de",
@@ -97,7 +98,13 @@
     "skippedFiles": "Archivos omitidos",
     "unsupportedFormat": "Formato no soportado",
     "dismiss": "Cerrar",
-    "failedUpload": "Error al subir archivo"
+    "failedUpload": "Error al subir archivo",
+    "yourUploads": "Tus fotos",
+    "yourUploadsDesc": "Solo visible desde este dispositivo. Toca una foto para eliminarla.",
+    "removeUpload": "Eliminar",
+    "confirmRemove": "¿Eliminar este archivo del evento?",
+    "removedUpload": "Eliminado",
+    "failedRemove": "Error al eliminar"
   },
   "editEvent": {
     "title": "Editar Evento",

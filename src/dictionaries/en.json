@@ -52,6 +52,7 @@
     "images": "Images",
     "videos": "Videos",
     "deleteAll": "Delete All",
+    "delete": "Delete",
     "deleting": "Deleting...",
     "page": "Page",
     "of": "of",
@@ -97,7 +98,13 @@
     "skippedFiles": "Skipped Files",
     "unsupportedFormat": "Unsupported format",
     "dismiss": "Dismiss",
-    "failedUpload": "Failed to upload file"
+    "failedUpload": "Failed to upload file",
+    "yourUploads": "Your Uploads",
+    "yourUploadsDesc": "Only visible from this device. Tap a photo to remove it.",
+    "removeUpload": "Remove",
+    "confirmRemove": "Remove this file from the event?",
+    "removedUpload": "Removed",
+    "failedRemove": "Failed to remove"
   },
   "editEvent": {
     "title": "Edit Event",

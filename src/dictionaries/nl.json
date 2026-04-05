@@ -52,6 +52,7 @@
     "images": "Afbeeldingen",
     "videos": "Video's",
     "deleteAll": "Alles Verwijderen",
+    "delete": "Verwijderen",
     "deleting": "Verwijderen...",
     "page": "Pagina",
     "of": "van",
@@ -97,7 +98,13 @@
     "skippedFiles": "Overgeslagen bestanden",
     "unsupportedFormat": "Niet-ondersteund formaat",
     "dismiss": "Sluiten",
-    "failedUpload": "Bestand uploaden mislukt"
+    "failedUpload": "Bestand uploaden mislukt",
+    "yourUploads": "Jouw uploads",
+    "yourUploadsDesc": "Alleen zichtbaar op dit apparaat. Tik op een foto om deze te verwijderen.",
+    "removeUpload": "Verwijderen",
+    "confirmRemove": "Dit bestand verwijderen uit het evenement?",
+    "removedUpload": "Verwijderd",
+    "failedRemove": "Verwijderen mislukt"
   },
   "editEvent": {
     "title": "Event Bewerken",

@@ -4,7 +4,7 @@ import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import prisma from '@/lib/db';
 import fs from 'fs';
 import path from 'path';
-import { Readable } from 'stream';
+import { resolveReadPath } from '@/lib/storage';
 
 const BASE_PATH = process.env.STORAGE_PATH || './storage';
 
@@ -26,23 +26,18 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       return new NextResponse('File not found', { status: 404 });
     }
 
-    const filePath = path.join(BASE_PATH, upload.relativePath);
-    
-    if (!fs.existsSync(filePath)) {
+    const filePath = resolveReadPath(upload.relativePath);
+
+    if (!filePath) {
       return new NextResponse('File missing on disk', { status: 404 });
     }
 
-    const stat = fs.statSync(filePath);
-    const fileStream = fs.createReadStream(filePath);
+    const buffer = fs.readFileSync(filePath);
 
-    // Convert Node stream to Web stream
-    // @ts-ignore
-    const webStream = Readable.toWeb(fileStream);
-
-    return new NextResponse(webStream as any, {
+    return new NextResponse(buffer, {
       headers: {
         'Content-Type': upload.mimeType,
-        'Content-Length': stat.size.toString(),
+        'Content-Length': buffer.length.toString(),
         'Cache-Control': 'public, max-age=31536000, immutable',
       },
     });
@@ -71,7 +66,7 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
       return NextResponse.json({ error: 'Not found' }, { status: 404 });
     }
 
-    // Delete files from disk
+    // Delete files from disk (primary + replica)
     const originalPath = path.join(BASE_PATH, upload.relativePath);
     const thumbPath = path.join(BASE_PATH, 'events', upload.eventId, 'thumbs', `${upload.id}.jpg`);
     const metaPath = path.join(BASE_PATH, 'events', upload.eventId, 'metadata', `${upload.id}.json`);
@@ -79,6 +74,8 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
     [originalPath, thumbPath, metaPath].forEach(p => {
         if (fs.existsSync(p)) fs.unlinkSync(p);
     });
+
+    // Replica is intentionally never deleted — it's a permanent archive
 
     // Delete from DB
     await prisma.upload.delete({
