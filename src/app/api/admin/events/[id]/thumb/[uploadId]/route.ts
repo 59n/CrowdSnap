@@ -1,11 +1,12 @@
 import { NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import prisma from '@/lib/db';
 import fs from 'fs';
 import path from 'path';
 import sharp from 'sharp';
 import { Readable } from 'stream';
 import { getPrimaryPath, resolveReadPath, scheduleMirror, isSafeEventId } from '@/lib/storage';
-import { expirePastEvents, isEventOpenForGuests } from '@/lib/events';
 import { isSafeId } from '@/lib/path-safe';
 
 async function streamJpeg(filePath: string) {
@@ -16,30 +17,30 @@ async function streamJpeg(filePath: string) {
     headers: {
       'Content-Type': 'image/jpeg',
       'Content-Length': size.toString(),
-      // Thumbs are content-addressed by upload id — long cache is safe
-      'Cache-Control': 'public, max-age=604800, immutable',
+      'Cache-Control': 'private, max-age=86400',
     },
   });
 }
 
 /**
- * Guest-facing thumbs — only while the event is open for guests.
- * Admin closed-event thumbs: /api/admin/events/[id]/thumb/[uploadId]
+ * Auth-protected thumbs for admin (including closed/archived events).
  */
 export async function GET(
   _request: Request,
-  { params }: { params: Promise<{ eventId: string; uploadId: string }> }
+  { params }: { params: Promise<{ id: string; uploadId: string }> }
 ) {
-  const { eventId, uploadId } = await params;
+  const session = await getServerSession(authOptions);
+  if (!session || session.user?.role !== 'ADMIN') {
+    return new NextResponse('Unauthorized', { status: 401 });
+  }
 
+  const { id: eventId, uploadId } = await params;
   if (!isSafeEventId(eventId) || !isSafeId(uploadId)) {
     return new NextResponse('Not found', { status: 404 });
   }
 
-  await expirePastEvents();
-
-  const event = await prisma.event.findUnique({ where: { id: eventId } });
-  if (!event || !isEventOpenForGuests(event)) {
+  const event = await prisma.event.findUnique({ where: { id: eventId }, select: { id: true } });
+  if (!event) {
     return new NextResponse('Not found', { status: 404 });
   }
 

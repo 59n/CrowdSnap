@@ -119,7 +119,12 @@
     "eventDisabledDesc": "L'organizzatore ha messo in pausa i caricamenti. Riprova più tardi.",
     "eventArchivedTitle": "Questo evento non è più disponibile",
     "eventArchivedDesc": "Questo evento è stato archiviato e non accetta più caricamenti.",
-    "backHome": "Torna alla home"
+    "backHome": "Torna alla home",
+    "rateLimitedTitle": "Rallenta un attimo",
+    "rateLimitedDesc": "Stai caricando molto velocemente. Riproveremo tra circa {seconds} secondi.",
+    "rateLimitedGiveUp": "Alcune foto non sono state caricate. Attendi circa {seconds} secondi e riprova.",
+    "rateLimitedWaiting": "Troppo veloce — attesa di ~{seconds}s poi continuiamo automaticamente…",
+    "partialUpload": "Caricate {ok}, {fail} ancora da fare — riprova o attendi il retry automatico."
   },
   "editEvent": {
     "title": "Modifica Evento",

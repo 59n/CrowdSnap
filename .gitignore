@@ -51,6 +51,7 @@ gallery.html
 /storage/
 /tmp/
 /scripts/stress_test/
+/logs/
 /data/settings.json
 /data/settings.json.tmp
 

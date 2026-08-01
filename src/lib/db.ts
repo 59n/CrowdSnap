@@ -12,7 +12,7 @@ const connectionString = process.env.DATABASE_URL!
 const PRISMA_SCHEMA_VERSION = 'event-archivedAt-v1'
 
 const prismaClientSingleton = () => {
-  const pool = new Pool({ connectionString })
+  const pool = new Pool({ connectionString, max: 15 })
   const adapter = new PrismaPg(pool)
   return new PrismaClient({ adapter })
 }

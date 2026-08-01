@@ -5,27 +5,33 @@ import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import prisma from '@/lib/db';
 import sharp from 'sharp';
-import { initEventStorage, getWriteRoot, mirrorToOtherSide, mirrorBufferToOtherSide } from '@/lib/storage';
+import {
+  initEventStorage,
+  getWriteRoot,
+  scheduleMirror,
+  isSafeEventId,
+  hasStorageRoom,
+} from '@/lib/storage';
 import { expirePastEvents, isEventOpenForGuests } from '@/lib/events';
+import {
+  checkRateLimit,
+  rateLimitKey,
+  UPLOAD_IP_LIMIT,
+  UPLOAD_EVENT_LIMIT,
+} from '@/lib/rate-limit';
+import { resolveUploadType, clampMaxFileSizeMB } from '@/lib/file-type';
 
-// Disable Next.js default body parser to handle raw multipart stream
 export const config = {
   api: {
     bodyParser: false,
   },
 };
 
-const ALLOWED_MIME_TYPES = new Set([
-  'image/jpeg',
-  'image/png',
-  'image/webp',
-  'image/heic',
-  'image/heif',
-  'image/gif',
-  'video/mp4',
-  'video/quicktime',
-  'video/webm',
-]);
+function clientIp(req: NextApiRequest): string {
+  const xf = req.headers['x-forwarded-for'];
+  if (typeof xf === 'string' && xf.length) return xf.split(',')[0].trim();
+  return req.socket.remoteAddress || 'unknown';
+}
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
@@ -33,149 +39,232 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   const { eventId } = req.query;
-  if (!eventId || typeof eventId !== 'string') {
+  if (!eventId || typeof eventId !== 'string' || !isSafeEventId(eventId)) {
     return res.status(400).json({ error: 'Missing or invalid eventId' });
   }
 
-  // Read device identifier (set by client, used to track ownership)
+  const ip = clientIp(req);
+  const ipLimit = checkRateLimit(
+    rateLimitKey('upload', 'ip', ip),
+    UPLOAD_IP_LIMIT.max,
+    UPLOAD_IP_LIMIT.windowMs
+  );
+  if (!ipLimit.allowed) {
+    res.setHeader('Retry-After', String(Math.ceil(ipLimit.retryAfterMs / 1000)));
+    return res.status(429).json({ error: 'Too many uploads from this network' });
+  }
+  const eventLimit = checkRateLimit(
+    rateLimitKey('upload', 'event', eventId),
+    UPLOAD_EVENT_LIMIT.max,
+    UPLOAD_EVENT_LIMIT.windowMs
+  );
+  if (!eventLimit.allowed) {
+    res.setHeader('Retry-After', String(Math.ceil(eventLimit.retryAfterMs / 1000)));
+    return res.status(429).json({ error: 'Too many uploads for this event' });
+  }
+
   const deviceId = (req.headers['x-device-id'] as string) || null;
 
   await expirePastEvents();
 
-  // Validate event
-  const event = await prisma.event.findUnique({
-    where: { id: eventId },
-  });
-
+  const event = await prisma.event.findUnique({ where: { id: eventId } });
   if (!event) {
     return res.status(404).json({ error: 'Event not found' });
   }
-
   if (!isEventOpenForGuests(event)) {
     return res.status(403).json({ error: 'Event is closed for uploads' });
   }
 
-  const maxFileSize = event.maxFileSizeMB * 1024 * 1024;
+  if (!hasStorageRoom()) {
+    return res.status(507).json({ error: 'Storage is full on all volumes' });
+  }
 
-  // Ensure storage directories exist for this event
+  const maxFileSizeMB = clampMaxFileSizeMB(event.maxFileSizeMB);
+  const maxFileSize = maxFileSizeMB * 1024 * 1024;
+
   initEventStorage(eventId);
 
-  const bb = busboy({ headers: req.headers, limits: { fileSize: maxFileSize } });
+  const bb = busboy({ headers: req.headers, limits: { fileSize: maxFileSize, files: 1 } });
 
-  return new Promise<void>((resolve, reject) => {
-    let asyncTasks: Promise<any>[] = [];
+  return new Promise<void>((resolve) => {
+    let asyncTasks: Promise<unknown>[] = [];
     let hasError = false;
 
-    bb.on('file', (name, file, info) => {
-    const { filename, encoding, mimeType } = info;
+    bb.on('file', (_name, file, info) => {
+      const { filename, mimeType: headerMime } = info;
 
-    if (!ALLOWED_MIME_TYPES.has(mimeType)) {
-      hasError = true;
-      if (!res.headersSent) res.status(400).json({ error: 'Invalid file type' });
-      file.resume();
-      return;
-    }
+      // Buffer first chunk for magic-byte sniff, then continue pipe
+      let head: Buffer | null = null;
+      let validated = false;
+      let writeStream: fs.WriteStream | null = null;
+      let originalPath = '';
+      let storedName = '';
+      let uuid = '';
+      let finalMime = headerMime;
+      let bytesReceived = 0;
+      let isOverflow = false;
 
-    const fileExt = path.extname(filename).toLowerCase() || '.bin';
-    const uuid = uuidv4();
-    const storedName = `${uuid}${fileExt}`;
+      const filePromise = new Promise((fileResolve) => {
+        const fail = (status: number, error: string) => {
+          hasError = true;
+          file.resume();
+          if (originalPath) fs.unlink(originalPath, () => {});
+          if (!res.headersSent) res.status(status).json({ error });
+          fileResolve(null);
+        };
 
-    // Determine write destination — overflow to replica when primary is near-full
-    const { root: writeRoot, isOverflow } = getWriteRoot();
-    const originalsDir = path.join(writeRoot, 'events', eventId, 'originals');
-    const thumbsDir    = path.join(writeRoot, 'events', eventId, 'thumbs');
-    const metaDir      = path.join(writeRoot, 'events', eventId, 'metadata');
-    [originalsDir, thumbsDir, metaDir].forEach(d => fs.mkdirSync(d, { recursive: true }));
+        file.on('data', (chunk: Buffer) => {
+          if (hasError) return;
+          bytesReceived += chunk.length;
 
-    const originalPath = path.join(originalsDir, storedName);
+          if (!validated) {
+            head = head ? Buffer.concat([head, chunk]) : Buffer.from(chunk);
+            if (head.length < 16 && bytesReceived < maxFileSize) {
+              // wait for more bytes unless stream ends soon
+              return;
+            }
+            const detected = resolveUploadType(headerMime, head);
+            if ('error' in detected) {
+              fail(400, detected.error);
+              return;
+            }
+            validated = true;
+            finalMime = detected.mime!;
+            uuid = uuidv4();
+            storedName = `${uuid}${detected.ext}`;
 
-    const writeStream = fs.createWriteStream(originalPath);
-    file.pipe(writeStream);
+            const write = getWriteRoot();
+            isOverflow = write.isOverflow;
+            const originalsDir = path.join(write.root, 'events', eventId, 'originals');
+            const thumbsDir = path.join(write.root, 'events', eventId, 'thumbs');
+            const metaDir = path.join(write.root, 'events', eventId, 'metadata');
+            [originalsDir, thumbsDir, metaDir].forEach((d) => fs.mkdirSync(d, { recursive: true }));
 
-    let bytesReceived = 0;
-    file.on('data', (data) => {
-      bytesReceived += data.length;
-    });
+            originalPath = path.join(originalsDir, storedName);
+            writeStream = fs.createWriteStream(originalPath);
+            writeStream.write(head);
+            head = null;
 
-    file.on('limit', () => {
-      hasError = true;
-      fs.unlink(originalPath, () => {});
-      if (!res.headersSent) res.status(413).json({ error: 'File size limit exceeded' });
-    });
-
-    const filePromise = new Promise((resolve) => {
-      writeStream.on('close', async () => {
-        if (hasError) {
-          return resolve(null);
-        }
-
-        // Mirror to the other volume so Mac ↔ SSD stay in sync.
-        // Normal: write primary, copy to SSD. Overflow: write SSD, try primary if space allows.
-        const relativeOriginal = `events/${eventId}/originals/${storedName}`;
-        if (isOverflow) {
-          console.log(`[Overflow] Writing to replica for event ${eventId}: ${storedName}`);
-        }
-        mirrorToOtherSide(originalPath, relativeOriginal, isOverflow);
-
-        // Handle thumbnail generation
-        if (mimeType.startsWith('image/')) {
-          try {
-            const thumbPath = path.join(thumbsDir, `${uuid}.jpg`);
-            // Read into buffer to ensure the OS has fully flushed the file
-            // (required for HEIC and large files where write-close fires early).
-            // .rotate() auto-corrects EXIF orientation for all phone photos.
-            const imageBuffer = fs.readFileSync(originalPath);
-            const thumbBuffer = await sharp(imageBuffer)
-              .rotate()
-              .resize({ width: 400, withoutEnlargement: true })
-              .jpeg({ quality: 80 })
-              .toBuffer();
-            fs.writeFileSync(thumbPath, thumbBuffer);
-            mirrorBufferToOtherSide(
-              thumbBuffer,
-              `events/${eventId}/thumbs/${uuid}.jpg`,
-              isOverflow
-            );
-          } catch (e) {
-            console.warn(`[Warning] Thumbnail generation failed for ${filename}:`, (e as Error).message);
-            // Non-fatal error; image is saved but thumbnail won't be available
+            writeStream.on('error', () => fail(500, 'Write failed'));
+          } else if (writeStream) {
+            writeStream.write(chunk);
           }
-        }
+        });
 
-        // Write Metadata
-        const metaPath = path.join(metaDir, `${uuid}.json`);
-        const metaContent = JSON.stringify({ originalName: filename, size: bytesReceived, mimeType });
-        fs.writeFileSync(metaPath, metaContent);
-        mirrorBufferToOtherSide(
-          Buffer.from(metaContent),
-          `events/${eventId}/metadata/${uuid}.json`,
-          isOverflow
-        );
+        file.on('limit', () => {
+          hasError = true;
+          if (originalPath) fs.unlink(originalPath, () => {});
+          if (!res.headersSent) res.status(413).json({ error: 'File size limit exceeded' });
+          fileResolve(null);
+        });
 
-        try {
-          // Save to database
-          const record = await prisma.upload.create({
-            data: {
-              id: uuid,
-              eventId: eventId,
-              originalName: filename,
-              storedName: storedName,
-              mimeType: mimeType,
-              size: bytesReceived,
-              relativePath: `events/${eventId}/originals/${storedName}`,
-              deviceId: deviceId,
-            },
+        file.on('end', async () => {
+          if (hasError) return;
+
+          if (!validated) {
+            if (!head || head.length < 12) {
+              fail(400, 'File too small to validate type');
+              return;
+            }
+            const detected = resolveUploadType(headerMime, head);
+            if ('error' in detected) {
+              fail(400, detected.error);
+              return;
+            }
+            validated = true;
+            finalMime = detected.mime!;
+            uuid = uuidv4();
+            storedName = `${uuid}${detected.ext}`;
+            const write = getWriteRoot();
+            isOverflow = write.isOverflow;
+            const originalsDir = path.join(write.root, 'events', eventId, 'originals');
+            const thumbsDir = path.join(write.root, 'events', eventId, 'thumbs');
+            const metaDir = path.join(write.root, 'events', eventId, 'metadata');
+            [originalsDir, thumbsDir, metaDir].forEach((d) => fs.mkdirSync(d, { recursive: true }));
+            originalPath = path.join(originalsDir, storedName);
+            writeStream = fs.createWriteStream(originalPath);
+            writeStream.write(head);
+          }
+
+          if (!writeStream || !originalPath) {
+            fail(500, 'Upload failed');
+            return;
+          }
+
+          await new Promise<void>((r) => writeStream!.end(() => r()));
+
+          const relativeOriginal = `events/${eventId}/originals/${storedName}`;
+          const thumbsDir = path.join(path.dirname(path.dirname(originalPath)), 'thumbs');
+          const metaDir = path.join(path.dirname(path.dirname(originalPath)), 'metadata');
+
+          // Thumbnail from file path — no full-buffer load of original
+          if (finalMime.startsWith('image/')) {
+            try {
+              const thumbPath = path.join(thumbsDir, `${uuid}.jpg`);
+              await sharp(originalPath)
+                .rotate()
+                .resize({ width: 400, withoutEnlargement: true })
+                .jpeg({ quality: 80 })
+                .toFile(thumbPath);
+              // Async mirror thumb (best-effort; does not block response)
+              scheduleMirror(thumbPath, `events/${eventId}/thumbs/${uuid}.jpg`, isOverflow);
+            } catch (e) {
+              console.warn(
+                `[Warning] Thumbnail generation failed for ${filename}:`,
+                (e as Error).message
+              );
+            }
+          }
+
+          const metaPath = path.join(metaDir, `${uuid}.json`);
+          const metaContent = JSON.stringify({
+            originalName: filename,
+            size: bytesReceived,
+            mimeType: finalMime,
           });
-          resolve(record);
-        } catch (dbError) {
-          console.error("DB error:", dbError);
-          resolve(null);
-        }
-      });
-    });
+          fs.writeFileSync(metaPath, metaContent);
 
-    asyncTasks.push(filePromise);
-  });
+          try {
+            const record = await prisma.upload.create({
+              data: {
+                id: uuid,
+                eventId,
+                originalName: filename,
+                storedName,
+                mimeType: finalMime,
+                size: bytesReceived,
+                relativePath: relativeOriginal,
+                deviceId,
+              },
+            });
+
+            // Primary+DB durable: mirror replica in background (never blocks guest success)
+            scheduleMirror(originalPath, relativeOriginal, isOverflow);
+            scheduleMirror(metaPath, `events/${eventId}/metadata/${uuid}.json`, isOverflow);
+
+            fileResolve(record);
+          } catch (dbError) {
+            console.error('DB error:', dbError);
+            // Cleanup orphan files on disk — client must not see success
+            try {
+              if (fs.existsSync(originalPath)) fs.unlinkSync(originalPath);
+              const thumbPath = path.join(thumbsDir, `${uuid}.jpg`);
+              if (fs.existsSync(thumbPath)) fs.unlinkSync(thumbPath);
+              if (fs.existsSync(metaPath)) fs.unlinkSync(metaPath);
+            } catch {
+              /* ignore */
+            }
+            hasError = true;
+            if (!res.headersSent) {
+              res.status(500).json({ error: 'Failed to save upload' });
+            }
+            fileResolve(null);
+          }
+        });
+      });
+
+      asyncTasks.push(filePromise);
+    });
 
     bb.on('error', (err) => {
       console.error('Busboy error:', err);
@@ -184,27 +273,37 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
 
     bb.on('close', async () => {
-      if (hasError) return resolve(); // Response sent in earlier handlers
-      
+      if (hasError) return resolve();
+
       try {
         const results = await Promise.all(asyncTasks);
-        const successfulUploads = results.filter(r => r !== null);
+        const successfulUploads = results.filter((r) => r !== null) as Array<{
+          id: string;
+          originalName: string;
+          mimeType: string;
+          size: number;
+          createdAt: Date;
+        }>;
         if (!res.headersSent) {
-          res.status(200).json({
-            success: true,
-            uploaded: successfulUploads.length,
-            uploads: successfulUploads.map((u: any) => ({
-              id: u.id,
-              originalName: u.originalName,
-              mimeType: u.mimeType,
-              size: u.size,
-              createdAt: u.createdAt,
-            })),
-          });
+          if (successfulUploads.length === 0) {
+            res.status(400).json({ error: 'No files uploaded', success: false, uploaded: 0 });
+          } else {
+            res.status(200).json({
+              success: true,
+              uploaded: successfulUploads.length,
+              uploads: successfulUploads.map((u) => ({
+                id: u.id,
+                originalName: u.originalName,
+                mimeType: u.mimeType,
+                size: u.size,
+                createdAt: u.createdAt,
+              })),
+            });
+          }
         }
       } catch (e) {
-         console.error("Finalization error:", e);
-         if (!res.headersSent) res.status(500).json({ error: "Failed to finalize upload" });
+        console.error('Finalization error:', e);
+        if (!res.headersSent) res.status(500).json({ error: 'Failed to finalize upload' });
       }
       resolve();
     });

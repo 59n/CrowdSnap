@@ -7,10 +7,12 @@ import {
   getReplicaPath,
   getPrimaryPath,
   isReplicaAvailable,
+  getCachedDiffStorageTrees,
   diffStorageTrees,
   syncMissingFiles,
   filterToAllowedEventRels,
   findOrphanRelativePaths,
+  invalidateSyncDiffCache,
   type KnownUpload,
 } from '@/lib/storage';
 
@@ -58,7 +60,7 @@ export async function POST(request: Request) {
   const uploads = await loadKnownUploads();
   const primaryEventsDir = path.join(getPrimaryPath(), 'events');
   const replicaEventsDir = path.join(getReplicaPath()!, 'events');
-  const diff = diffStorageTrees();
+  const diff = diffStorageTrees(); // force fresh walk on explicit sync
 
   let toReplica = { copied: 0, skipped: 0, failed: 0 };
   let toPrimary = { copied: 0, skipped: 0, failed: 0 };
@@ -77,6 +79,7 @@ export async function POST(request: Request) {
     toReplica = syncMissingFiles(primaryEventsDir, replicaEventsDir, allowed);
   }
 
+  invalidateSyncDiffCache();
   const after = diffStorageTrees();
   // Re-diff only allowed files for "in sync" of real uploads
   const afterPrimaryOnlyAllowed = filterToAllowedEventRels(after.primaryOnly, uploads);
@@ -127,7 +130,7 @@ export async function GET() {
   }
 
   const uploads = await loadKnownUploads();
-  const diff = diffStorageTrees();
+  const diff = getCachedDiffStorageTrees();
   const missingOnReplica = filterToAllowedEventRels(diff.primaryOnly, uploads).length;
   const missingOnPrimary = filterToAllowedEventRels(diff.replicaOnly, uploads).length;
   const inSync = missingOnReplica === 0 && missingOnPrimary === 0;

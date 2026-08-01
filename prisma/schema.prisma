@@ -67,6 +67,8 @@ model Event {
   guestGalleryEnabled  Boolean  @default(true)
   createdAt            DateTime @default(now())
   uploads       Upload[]
+
+  @@index([isActive, endDate])
 }
 
 model Upload {
@@ -81,4 +83,11 @@ model Upload {
   createdAt    DateTime @default(now())
 
   event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@index([eventId, createdAt])
+  @@index([eventId, deviceId])
 }
+
+// Partial-ish support for expiry scans
+// (Prisma has no partial indexes in schema; compound helps active+endDate filters)
+// Event.isActive + endDate used by expirePastEvents

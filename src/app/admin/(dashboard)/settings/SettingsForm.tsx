@@ -60,7 +60,6 @@ const CATEGORY_META: Record<
 export default function SettingsForm() {
   const [fields, setFields] = useState<FieldMeta[]>([]);
   const [values, setValues] = useState<Record<string, string>>({});
-  const [paths, setPaths] = useState<{ settingsPath?: string; envPath?: string }>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [currentPassword, setCurrentPassword] = useState("");
@@ -88,7 +87,6 @@ export default function SettingsForm() {
           }
         }
         setValues(next);
-        setPaths({ settingsPath: data.settingsPath, envPath: data.envPath });
       })
       .catch(() => toast.error("Could not load settings"))
       .finally(() => setLoading(false));
@@ -187,16 +185,8 @@ export default function SettingsForm() {
       <div className="rounded-lg border border-amber-500/30 bg-amber-50/50 dark:bg-amber-950/20 px-4 py-3 text-xs text-amber-900 dark:text-amber-200 flex gap-2">
         <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
         <div className="space-y-1">
-          <p className="font-medium">Changes are written to both places:</p>
-          <ul className="list-disc pl-4 text-amber-800/90 dark:text-amber-200/80 space-y-0.5">
-            <li>
-              <code className="text-[10px]">{paths.settingsPath || "data/settings.json"}</code> — used live by the app
-            </li>
-            <li>
-              <code className="text-[10px]">{paths.envPath || ".env"}</code> — so restarts / Docker still pick them up
-            </li>
-          </ul>
-          <p className="pt-1">Secret fields left blank keep their current value. Database / session secret changes need a server restart.</p>
+          <p className="font-medium">Changes are saved to local settings and mirrored to .env for restarts.</p>
+          <p className="pt-1">Secret fields left blank keep their current value. Database / session secret changes need a server restart. Storage paths cannot use path traversal.</p>
         </div>
       </div>
 

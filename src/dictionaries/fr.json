@@ -119,7 +119,12 @@
     "eventDisabledDesc": "L'organisateur a mis les envois en pause. Réessayez plus tard.",
     "eventArchivedTitle": "Cet événement n'est plus disponible",
     "eventArchivedDesc": "Cet événement a été archivé et n'accepte plus de fichiers.",
-    "backHome": "Retour à l'accueil"
+    "backHome": "Retour à l'accueil",
+    "rateLimitedTitle": "Un peu plus lentement",
+    "rateLimitedDesc": "Vous envoyez très vite. Nouvel essai automatique dans environ {seconds} secondes.",
+    "rateLimitedGiveUp": "Certaines photos n'ont pas pu être envoyées. Attendez environ {seconds} secondes puis réessayez.",
+    "rateLimitedWaiting": "Trop rapide — pause d’environ {seconds}s puis reprise automatique…",
+    "partialUpload": "{ok} envoyées, {fail} en attente — renvoyez ou attendez le nouvel essai."
   },
   "editEvent": {
     "title": "Modifier Événement",

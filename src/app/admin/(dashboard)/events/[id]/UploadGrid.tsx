@@ -15,7 +15,7 @@ import { useTranslation } from "@/components/TranslationProvider";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { formatDistanceToNow, format } from "date-fns";
 
-const POLL_INTERVAL = 8_000;
+const POLL_INTERVAL = 20_000;
 
 interface Upload {
   id: string;
@@ -30,10 +30,12 @@ export default function UploadGrid({
   uploads: initialUploads,
   eventId,
   maxFileSizeMB,
+  totalCount,
 }: {
   uploads: Upload[];
   eventId: string;
   maxFileSizeMB: number;
+  totalCount?: number;
 }) {
   const [uploads, setUploads] = useState(initialUploads);
   const [newCount, setNewCount] = useState(0);
@@ -51,6 +53,16 @@ export default function UploadGrid({
   const [deleteAllPassword, setDeleteAllPassword] = useState("");
   const [deleteAllPasswordError, setDeleteAllPasswordError] = useState(false);
   const [deleteAllStep, setDeleteAllStep] = useState(1);
+  const [nextCursor, setNextCursor] = useState<string | null>(
+    initialUploads.length > 0 ? initialUploads[initialUploads.length - 1]?.id ?? null : null
+  );
+  const [hasMore, setHasMore] = useState(
+    typeof totalCount === "number"
+      ? totalCount > initialUploads.length
+      : initialUploads.length >= 50
+  );
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [serverTotal, setServerTotal] = useState(totalCount ?? initialUploads.length);
   const { t } = useTranslation();
 
   const itemsPerPage = viewMode === "list" ? 50 : 20;
@@ -66,6 +78,35 @@ export default function UploadGrid({
   // Every 5th poll is a full reconciliation to catch guest-side deletions.
   const pollCount = useRef(0);
 
+  /** Fetch next page via server cursor (older uploads). */
+  const loadMore = useCallback(async () => {
+    if (!hasMore || loadingMore || !nextCursor) return;
+    setLoadingMore(true);
+    try {
+      const res = await fetch(
+        `/api/admin/events/${eventId}/uploads?limit=50&cursor=${encodeURIComponent(nextCursor)}`,
+        { cache: "no-store" }
+      );
+      if (!res.ok) throw new Error("load failed");
+      const data = await res.json();
+      const incoming: Upload[] = data.uploads ?? [];
+      const fresh = incoming.filter((u) => !seenIds.current.has(u.id));
+      fresh.forEach((u) => seenIds.current.add(u.id));
+      if (fresh.length) {
+        setUploads((prev) => [...prev, ...fresh]);
+      }
+      setNextCursor(data.nextCursor ?? (fresh.length ? fresh[fresh.length - 1].id : null));
+      setHasMore(Boolean(data.hasMore));
+      if (typeof totalCount === "number") {
+        setServerTotal(totalCount);
+      }
+    } catch {
+      toast.error("Failed to load more uploads");
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [eventId, hasMore, loadingMore, nextCursor, totalCount]);
+
   // Build a stable device → display-number map
   const uniqueDevices = useMemo(() => {
     const seen = new Map<string, number>();
@@ -80,61 +121,61 @@ export default function UploadGrid({
       (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     );
     return {
-      count: uploads.length,
+      count: serverTotal,
       imageCount: uploads.filter(u => u.mimeType.startsWith("image/")).length,
       videoCount: uploads.filter(u => u.mimeType.startsWith("video/")).length,
       totalSizeMB: uploads.reduce((acc, u) => acc + u.size, 0) / (1024 * 1024),
       uniqueDeviceCount: uniqueDevices.size,
       lastUpload: sorted.length > 0 ? new Date(sorted[0].createdAt) : null,
     };
-  }, [uploads, uniqueDevices]);
+  }, [uploads, uniqueDevices, serverTotal]);
 
   // Polling
   const poll = useCallback(async () => {
     try {
       pollCount.current++;
-      const isReconciliation = pollCount.current % 5 === 0;
+      // Cheap count check every 5th poll; only fetch deltas with since=
+      const isReconcile = pollCount.current % 5 === 0;
+      if (isReconcile) {
+        const countRes = await fetch(
+          `/api/admin/events/${eventId}/uploads?countOnly=1`,
+          { cache: "no-store" }
+        );
+        if (countRes.ok) {
+          const c = await countRes.json();
+          // If totals match and no newer items, skip full work
+          if (
+            typeof c.count === "number" &&
+            c.count === seenIds.current.size &&
+            (!c.latestCreatedAt ||
+              new Date(c.latestCreatedAt).getTime() <=
+                new Date(lastCheckedAt.current).getTime())
+          ) {
+            setNewCount(0);
+            return;
+          }
+        }
+      }
 
-      const url = isReconciliation
-        ? `/api/admin/events/${eventId}/uploads`
-        : `/api/admin/events/${eventId}/uploads?since=${encodeURIComponent(lastCheckedAt.current)}`;
-
+      const url = `/api/admin/events/${eventId}/uploads?since=${encodeURIComponent(lastCheckedAt.current)}`;
       const res = await fetch(url, { cache: "no-store" });
       if (!res.ok) return;
       const data = await res.json();
       const incoming: Upload[] = data.uploads ?? [];
-
-      if (isReconciliation) {
-        // Replace client state with server truth — catches guest-side deletions.
-        const serverIds = new Set(incoming.map(u => u.id));
-        seenIds.current = serverIds;
-        if (incoming.length > 0) {
-          lastCheckedAt.current = new Date(
-            Math.max(...incoming.map(u => new Date(u.createdAt).getTime()))
-          ).toISOString();
-        }
-        setUploads(incoming);
-        // Remove any "new" badges for items that no longer exist on the server.
-        setNewIds(prev => { const next = new Set([...prev].filter(id => serverIds.has(id))); return next; });
-        setNewCount(prev => { void prev; return 0; }); // clear stale banner after reconciliation
-        return;
-      }
-
       if (incoming.length === 0) return;
 
       lastCheckedAt.current = new Date(
         Math.max(...incoming.map((u: Upload) => new Date(u.createdAt).getTime()))
       ).toISOString();
 
-      // Deduplicate against the ref (not state) so StrictMode double-invocation
-      // of state updaters doesn't double-increment newCount.
-      const truly_new = incoming.filter(u => !seenIds.current.has(u.id));
+      const truly_new = incoming.filter((u) => !seenIds.current.has(u.id));
       if (truly_new.length === 0) return;
-      truly_new.forEach(u => seenIds.current.add(u.id));
+      truly_new.forEach((u) => seenIds.current.add(u.id));
 
-      setUploads(prev => [...truly_new, ...prev]);
-      setNewCount(c => c + truly_new.length);
-      setNewIds(prev => new Set([...prev, ...truly_new.map(u => u.id)]));
+      setUploads((prev) => [...truly_new, ...prev]);
+      setServerTotal((n) => n + truly_new.length);
+      setNewCount((c) => c + truly_new.length);
+      setNewIds((prev) => new Set([...prev, ...truly_new.map((u) => u.id)]));
     } catch {
       // silently ignore
     }
@@ -452,7 +493,7 @@ export default function UploadGrid({
                   <div className="aspect-square relative bg-muted">
                     {isImage ? (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img src={`/api/p/${eventId}/thumb/${upload.id}`} alt={upload.originalName} loading="lazy" className="object-cover w-full h-full" />
+                      <img src={`/api/admin/events/${eventId}/thumb/${upload.id}`} alt={upload.originalName} loading="lazy" className="object-cover w-full h-full" />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center bg-muted">
                         <Film className="w-6 h-6 text-muted-foreground/50" />
@@ -516,7 +557,7 @@ export default function UploadGrid({
                       >
                         {isImage ? (
                           // eslint-disable-next-line @next/next/no-img-element
-                          <img src={`/api/p/${eventId}/thumb/${upload.id}`} alt={upload.originalName} loading="lazy" className="object-cover w-full h-full" />
+                          <img src={`/api/admin/events/${eventId}/thumb/${upload.id}`} alt={upload.originalName} loading="lazy" className="object-cover w-full h-full" />
                         ) : (
                           <Film className="w-4 h-4 text-muted-foreground/50" />
                         )}
@@ -576,7 +617,7 @@ export default function UploadGrid({
         </div>
       )}
 
-      {/* ── Pagination ────────────────────────────────── */}
+      {/* ── Client page of loaded set ─────────────────── */}
       {totalPages > 1 && (
         <div className="flex justify-center items-center gap-2 mt-8">
           <Button variant="outline" size="icon" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>
@@ -587,6 +628,21 @@ export default function UploadGrid({
           </span>
           <Button variant="outline" size="icon" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}>
             <ChevronRight className="w-4 h-4" />
+          </Button>
+        </div>
+      )}
+
+      {/* ── Server cursor: load older uploads ─────────── */}
+      {hasMore && (
+        <div className="flex justify-center mt-4">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={loadMore}
+            disabled={loadingMore || !nextCursor}
+            className="rounded-full"
+          >
+            {loadingMore ? "Loading…" : `Load older uploads (${uploads.length} of ${serverTotal} loaded)`}
           </Button>
         </div>
       )}
@@ -704,10 +760,18 @@ export default function UploadGrid({
               </div>
             </motion.div>
 
-            {/* Thumbnail strip */}
+            {/* Thumbnail strip — window around selection (not full list) */}
             <div className="absolute bottom-6 left-0 right-0 flex justify-center w-full z-50 pointer-events-auto" onClick={e => e.stopPropagation()}>
               <div className="flex gap-2 md:gap-3 px-4 overflow-x-auto pb-4 max-w-[90vw] snap-x scroll-smooth" style={{ scrollbarWidth: "none" }}>
-                {filteredAndSortedUploads.map((u, i) => (
+                {(() => {
+                  const total = filteredAndSortedUploads.length;
+                  const windowSize = 21;
+                  const half = Math.floor(windowSize / 2);
+                  const start = Math.max(0, Math.min((selectedIndex ?? 0) - half, Math.max(0, total - windowSize)));
+                  const end = Math.min(total, start + windowSize);
+                  return filteredAndSortedUploads.slice(start, end).map((u, offset) => {
+                    const i = start + offset;
+                    return (
                   <button
                     id={`thumb-${i}`}
                     key={u.id}
@@ -720,12 +784,16 @@ export default function UploadGrid({
                   >
                     {u.mimeType.startsWith("image/") ? (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img src={`/api/admin/uploads/${u.id}`} alt={u.originalName} loading="lazy" className="object-cover w-full h-full" />
+                      <img src={`/api/admin/events/${eventId}/thumb/${u.id}`} alt={u.originalName} loading="lazy" className="object-cover w-full h-full" />
                     ) : (
-                      <video src={`/api/admin/uploads/${u.id}#t=0.001`} className="object-cover w-full h-full" preload="metadata" muted playsInline />
+                      <div className="w-full h-full bg-muted flex items-center justify-center">
+                        <Film className="w-5 h-5 text-muted-foreground" />
+                      </div>
                     )}
                   </button>
-                ))}
+                    );
+                  });
+                })()}
               </div>
             </div>
           </motion.div>

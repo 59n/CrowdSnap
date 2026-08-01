@@ -52,15 +52,28 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
   const event = await prisma.event.findUnique({
     where: { id },
     include: {
-      uploads: {
-        orderBy: { createdAt: "desc" }
-      }
-    }
+      _count: { select: { uploads: true } },
+    },
   });
 
   if (!event) {
     notFound();
   }
+
+  // First page only — full history loaded client-side via paginated API
+  const initialUploads = await prisma.upload.findMany({
+    where: { eventId: id },
+    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+    take: 50,
+    select: {
+      id: true,
+      originalName: true,
+      mimeType: true,
+      size: true,
+      createdAt: true,
+      deviceId: true,
+    },
+  });
 
   const status = getEventStatus(event);
   const guestsOpen = isEventOpenForGuests(event);
@@ -116,7 +129,7 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
               <ExternalLink className="w-3.5 h-3.5 mr-1.5" /> {t.guestView}
             </Link>
           </Button>
-          <Button size="sm" asChild disabled={event.uploads.length === 0}>
+          <Button size="sm" asChild disabled={event._count.uploads === 0}>
             <a href={`/api/admin/events/${event.id}/export`} download>
               <Download className="w-3.5 h-3.5 mr-1.5" /> {t.export}
             </a>
@@ -169,7 +182,12 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
           </div>
         </CardHeader>
         <CardContent>
-          <UploadGrid uploads={event.uploads} eventId={event.id} maxFileSizeMB={event.maxFileSizeMB} />
+          <UploadGrid
+            uploads={initialUploads}
+            eventId={event.id}
+            maxFileSizeMB={event.maxFileSizeMB}
+            totalCount={event._count.uploads}
+          />
         </CardContent>
       </Card>
     </div>

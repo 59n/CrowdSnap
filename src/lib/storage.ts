@@ -2,10 +2,16 @@ import fs from 'fs';
 import path from 'path';
 import { execFileSync } from 'child_process';
 import { getAppSettings } from '@/lib/settings';
+import { isSafeId, safeJoin, safeResolveUnder } from '@/lib/path-safe';
+
+/** Project root for relative storage paths. turbopackIgnore keeps NFT from tracing the whole repo. */
+function projectRoot(): string {
+  return /* turbopackIgnore: true */ process.cwd();
+}
 
 /** Resolve env/settings paths to absolute so relative STORAGE_PATH always hits project root. */
 function resolveStoragePath(raw: string): string {
-  return path.isAbsolute(raw) ? raw : path.resolve(process.cwd(), raw);
+  return path.isAbsolute(raw) ? raw : path.resolve(projectRoot(), raw);
 }
 
 /** Primary storage root — reads live settings (admin panel / .env). */
@@ -20,15 +26,27 @@ export function getReplicaPath(): string | null {
   return resolveStoragePath(raw);
 }
 
+export function isSafeEventId(id: string): boolean {
+  return isSafeId(id);
+}
+
 /** Skip macOS junk / editor noise when walking storage trees. */
 const SKIP_NAMES = new Set(['.DS_Store', 'Thumbs.db', '.gitkeep', '.overflow-force']);
 
 export function getEventStoragePath(eventId: string) {
-  return path.join(getPrimaryPath(), 'events', eventId);
+  if (!isSafeId(eventId)) throw new Error('Invalid event id');
+  const p = safeJoin(getPrimaryPath(), 'events', eventId);
+  if (!p) throw new Error('Invalid event storage path');
+  return p;
 }
 
 export function getFilePath(eventId: string, type: 'originals' | 'thumbs' | 'metadata', filename: string) {
-  return path.join(getEventStoragePath(eventId), type, filename);
+  if (!isSafeId(eventId) || !filename || filename.includes('..') || filename.includes('/') || filename.includes('\\')) {
+    throw new Error('Invalid storage path segment');
+  }
+  const p = safeJoin(getPrimaryPath(), 'events', eventId, type, path.basename(filename));
+  if (!p) throw new Error('Invalid file path');
+  return p;
 }
 
 export function getReplicaFilePath(
@@ -36,8 +54,9 @@ export function getReplicaFilePath(
   type: 'originals' | 'thumbs' | 'metadata',
   filename: string
 ): string | null {
-  if (!getReplicaPath()) return null;
-  return path.join(getReplicaPath()!, 'events', eventId, type, filename);
+  const root = getReplicaPath();
+  if (!root || !isSafeId(eventId)) return null;
+  return safeJoin(root, 'events', eventId, type, path.basename(filename));
 }
 
 export function initBaseStorage() {
@@ -47,13 +66,15 @@ export function initBaseStorage() {
 }
 
 export function initEventStorage(eventId: string) {
-  const dirs = ['originals', 'thumbs', 'metadata'];
+  if (!isSafeId(eventId)) throw new Error('Invalid event id');
+  const dirs = ['originals', 'thumbs', 'metadata'] as const;
   const eventPath = getEventStoragePath(eventId);
   for (const dir of dirs) {
     fs.mkdirSync(path.join(eventPath, dir), { recursive: true });
   }
   if (getReplicaPath() && isReplicaAvailable()) {
-    const replicaEventPath = path.join(getReplicaPath()!, 'events', eventId);
+    const replicaEventPath = safeJoin(getReplicaPath()!, 'events', eventId);
+    if (!replicaEventPath) return;
     for (const dir of dirs) {
       try {
         fs.mkdirSync(path.join(replicaEventPath, dir), { recursive: true });
@@ -120,15 +141,17 @@ export function replicateUnlink(filePath: string) {
  * Cover files are never touched.
  */
 export function deleteUploadFiles(eventId: string, uploadId: string, storedName: string) {
+  if (!isSafeId(eventId) || !isSafeId(uploadId)) return;
   const relativePaths = [
-    `events/${eventId}/originals/${storedName}`,
+    `events/${eventId}/originals/${path.basename(storedName)}`,
     `events/${eventId}/thumbs/${uploadId}.jpg`,
     `events/${eventId}/metadata/${uploadId}.json`,
   ];
 
   for (const rel of relativePaths) {
-    safeUnlink(path.join(getPrimaryPath(), rel));
-    if (getReplicaPath()) safeUnlink(path.join(getReplicaPath()!, rel));
+    safeUnlink(safeResolveUnder(getPrimaryPath(), rel));
+    const rep = getReplicaPath();
+    if (rep) safeUnlink(safeResolveUnder(rep, rel));
   }
 }
 
@@ -176,8 +199,8 @@ function getMacDiskHelper(): string | null {
     return null;
   }
 
-  const bin = path.join(process.cwd(), 'scripts', 'macos-disk-free');
-  const src = path.join(process.cwd(), 'scripts', 'macos-disk-free.swift');
+  const bin = path.join(projectRoot(), 'scripts', 'macos-disk-free');
+  const src = path.join(projectRoot(), 'scripts', 'macos-disk-free.swift');
 
   try {
     if (fs.existsSync(bin)) {
@@ -234,30 +257,40 @@ function getMacDiskStats(dirPath: string): DiskStats | null {
   }
 }
 
+const DISK_STATS_TTL_MS = 30_000;
+const diskStatsCache = new Map<string, { at: number; stats: DiskStats }>();
+
 /**
  * Filesystem stats for the volume that hosts `dirPath`.
  * On macOS, matches System Settings free space (includes purgeable APFS space).
- * Elsewhere falls back to Node statfs.
+ * Elsewhere falls back to Node statfs. Results are cached ~30s.
  */
 export function getDiskStats(dirPath: string): DiskStats | null {
   try {
+    const key = path.resolve(dirPath);
+    const cached = diskStatsCache.get(key);
+    if (cached && Date.now() - cached.at < DISK_STATS_TTL_MS) return cached.stats;
+
     // Ensure path exists so we target the right volume
     if (!fs.existsSync(dirPath)) {
       fs.mkdirSync(dirPath, { recursive: true });
     }
 
+    let stats: DiskStats | null = null;
     if (process.platform === 'darwin') {
-      const mac = getMacDiskStats(dirPath);
-      if (mac) return mac;
+      stats = getMacDiskStats(dirPath);
     }
-
-    const stat = fs.statfsSync(dirPath);
-    const blockSize = stat.bsize || 4096;
-    const totalGB = (stat.blocks * blockSize) / GB;
-    const freeGB = (stat.bavail * blockSize) / GB;
-    const usedGB = Math.max(0, totalGB - freeGB);
-    const percentage = totalGB > 0 ? (usedGB / totalGB) * 100 : 0;
-    return { totalGB, freeGB, usedGB, percentage, matchesSystemSettings: false };
+    if (!stats) {
+      const stat = fs.statfsSync(dirPath);
+      const blockSize = stat.bsize || 4096;
+      const totalGB = (stat.blocks * blockSize) / GB;
+      const freeGB = (stat.bavail * blockSize) / GB;
+      const usedGB = Math.max(0, totalGB - freeGB);
+      const percentage = totalGB > 0 ? (usedGB / totalGB) * 100 : 0;
+      stats = { totalGB, freeGB, usedGB, percentage, matchesSystemSettings: false };
+    }
+    diskStatsCache.set(key, { at: Date.now(), stats });
+    return stats;
   } catch {
     return null;
   }
@@ -295,6 +328,12 @@ export function setOverrideMode(mode: 'on' | 'off' | 'auto') {
   }
 }
 
+let writeRootCache: {
+  at: number;
+  value: { root: string; isOverflow: boolean; overrideMode: 'on' | 'off' | 'auto' };
+} | null = null;
+const WRITE_ROOT_TTL_MS = 30_000;
+
 /**
  * Returns true when primary volume free space is critically low.
  * Falls back to false if stats can't be read (never blocks an upload).
@@ -305,15 +344,33 @@ export function isPrimaryNearFull(): boolean {
   return stats.freeGB < overflowFreeGB() || stats.percentage >= overflowPercent();
 }
 
+/** True if at least one of primary or replica has free space above overflow threshold. */
+export function hasStorageRoom(): boolean {
+  const primary = getDiskStats(getPrimaryPath());
+  if (primary && primary.freeGB >= 1) return true;
+  const rep = getReplicaPath();
+  if (rep && isReplicaAvailable()) {
+    const r = getDiskStats(rep);
+    if (r && r.freeGB >= 1) return true;
+  }
+  // If stats unreadable, allow (fail open for self-host)
+  return !primary;
+}
+
 /**
  * Decides the active write root: replica if primary is critically low on space
  * and replica is available, otherwise primary. Respects manual override flag.
+ * Cached ~30s so uploads don't re-run disk helpers every file.
  */
 export function getWriteRoot(): {
   root: string;
   isOverflow: boolean;
   overrideMode: 'on' | 'off' | 'auto';
 } {
+  if (writeRootCache && Date.now() - writeRootCache.at < WRITE_ROOT_TTL_MS) {
+    return writeRootCache.value;
+  }
+
   const overrideMode = getOverrideMode();
   const replicaReady = !!getReplicaPath() && isReplicaAvailable();
 
@@ -322,23 +379,27 @@ export function getWriteRoot(): {
     overrideMode === 'off' ? false :
     isPrimaryNearFull();
 
-  if (shouldOverflow && replicaReady) {
-    return { root: getReplicaPath()!, isOverflow: true, overrideMode };
-  }
-  return { root: getPrimaryPath(), isOverflow: false, overrideMode };
+  const value =
+    shouldOverflow && replicaReady
+      ? { root: getReplicaPath()!, isOverflow: true, overrideMode }
+      : { root: getPrimaryPath(), isOverflow: false, overrideMode };
+
+  writeRootCache = { at: Date.now(), value };
+  return value;
 }
 
 /**
  * Given a relative storage path (e.g. events/…/originals/x.jpg), returns the
  * first path (primary then replica) where the file exists, or null.
+ * Paths are constrained under storage roots.
  */
 export function resolveReadPath(relativePath: string): string | null {
-  const primary = path.join(getPrimaryPath(), relativePath);
-  if (fs.existsSync(primary)) return primary;
-  const _repRead = getReplicaPath();
-  if (_repRead) {
-    const replica = path.join(_repRead, relativePath);
-    if (fs.existsSync(replica)) return replica;
+  const primary = safeResolveUnder(getPrimaryPath(), relativePath);
+  if (primary && fs.existsSync(primary)) return primary;
+  const rep = getReplicaPath();
+  if (rep) {
+    const replica = safeResolveUnder(rep, relativePath);
+    if (replica && fs.existsSync(replica)) return replica;
   }
   return null;
 }
@@ -346,35 +407,49 @@ export function resolveReadPath(relativePath: string): string | null {
 /**
  * Absolute path on primary for a relative storage path (may not exist yet).
  */
-export function primaryAbs(relativePath: string): string {
-  return path.join(getPrimaryPath(), relativePath);
+export function primaryAbs(relativePath: string): string | null {
+  return safeResolveUnder(getPrimaryPath(), relativePath);
 }
 
 /**
  * Absolute path on replica for a relative storage path, or null if no replica.
  */
 export function replicaAbs(relativePath: string): string | null {
-  if (!getReplicaPath()) return null;
-  return path.join(getReplicaPath()!, relativePath);
+  const rep = getReplicaPath();
+  if (!rep) return null;
+  return safeResolveUnder(rep, relativePath);
 }
 
 /**
  * After writing a file to `srcAbs`, also place it on the other volume so both
- * Mac and SSD stay mirrored. Safe no-op if the other side is unavailable.
+ * Mac and SSD stay mirrored. Synchronous — prefer scheduleMirror on hot paths.
  */
 export function mirrorToOtherSide(srcAbs: string, relativePath: string, wroteToReplica: boolean) {
   if (wroteToReplica) {
-    // Overflow write landed on SSD — also try primary if it has room
     if (!isPrimaryNearFull()) {
-      replicateCopy(srcAbs, primaryAbs(relativePath));
+      const dest = primaryAbs(relativePath);
+      if (dest) replicateCopy(srcAbs, dest);
     }
   } else {
-    // Normal write on primary — always try to mirror to SSD
     const dest = replicaAbs(relativePath);
     if (dest && isReplicaAvailable()) {
       replicateCopy(srcAbs, dest);
     }
   }
+}
+
+/**
+ * Fire-and-forget mirror after durable primary write + DB success.
+ * Brief primary-only window if process dies mid-copy is acceptable vs blocking guests.
+ */
+export function scheduleMirror(srcAbs: string, relativePath: string, wroteToReplica: boolean) {
+  setImmediate(() => {
+    try {
+      mirrorToOtherSide(srcAbs, relativePath, wroteToReplica);
+    } catch (e) {
+      console.warn('[Replica] async mirror failed:', (e as Error).message);
+    }
+  });
 }
 
 /**
@@ -387,7 +462,8 @@ export function mirrorBufferToOtherSide(
 ) {
   if (wroteToReplica) {
     if (!isPrimaryNearFull()) {
-      replicateWrite(primaryAbs(relativePath), buffer);
+      const dest = primaryAbs(relativePath);
+      if (dest) replicateWrite(dest, buffer);
     }
   } else {
     const dest = replicaAbs(relativePath);
@@ -472,6 +548,23 @@ export function diffStorageTrees(): SyncDiff {
     primaryOriginals: countOriginals(primaryFiles),
     replicaOriginals: countOriginals(replicaFiles),
   };
+}
+
+/** Cached storage tree diff for admin widget (avoid full walk every 15s). */
+let syncDiffCache: { at: number; value: SyncDiff } | null = null;
+const SYNC_DIFF_TTL_MS = 60_000;
+
+export function getCachedDiffStorageTrees(force = false): SyncDiff {
+  if (!force && syncDiffCache && Date.now() - syncDiffCache.at < SYNC_DIFF_TTL_MS) {
+    return syncDiffCache.value;
+  }
+  const value = diffStorageTrees();
+  syncDiffCache = { at: Date.now(), value };
+  return value;
+}
+
+export function invalidateSyncDiffCache() {
+  syncDiffCache = null;
 }
 
 export interface SyncResult {

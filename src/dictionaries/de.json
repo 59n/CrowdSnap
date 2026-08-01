@@ -119,7 +119,12 @@
     "eventDisabledDesc": "Der Gastgeber hat Uploads pausiert. Bitte später erneut versuchen.",
     "eventArchivedTitle": "Diese Veranstaltung ist nicht mehr verfügbar",
     "eventArchivedDesc": "Diese Veranstaltung wurde archiviert und nimmt keine Uploads mehr an.",
-    "backHome": "Zur Startseite"
+    "backHome": "Zur Startseite",
+    "rateLimitedTitle": "Einen Moment langsamer",
+    "rateLimitedDesc": "Du lädst sehr schnell hoch. Wir versuchen es in etwa {seconds} Sekunden erneut.",
+    "rateLimitedGiveUp": "Einige Fotos konnten noch nicht hochgeladen werden. Bitte warte etwa {seconds} Sekunden und versuche es erneut.",
+    "rateLimitedWaiting": "Zu schnell — warte ~{seconds}s, dann geht es automatisch weiter…",
+    "partialUpload": "{ok} hochgeladen, {fail} noch offen — erneut tippen oder auf Auto-Retry warten."
   },
   "editEvent": {
     "title": "Event bearbeiten",

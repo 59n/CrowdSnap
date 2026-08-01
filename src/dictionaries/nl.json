@@ -119,7 +119,12 @@
     "eventDisabledDesc": "De organisator heeft uploads gepauzeerd. Probeer het later opnieuw.",
     "eventArchivedTitle": "Dit evenement is niet meer beschikbaar",
     "eventArchivedDesc": "Dit evenement is gearchiveerd en accepteert geen uploads meer.",
-    "backHome": "Terug naar home"
+    "backHome": "Terug naar home",
+    "rateLimitedTitle": "Even rustig aan",
+    "rateLimitedDesc": "Je uploadt erg snel. We proberen het over ongeveer {seconds} seconden opnieuw.",
+    "rateLimitedGiveUp": "Sommige foto's konden nog niet worden geüpload. Wacht ongeveer {seconds} seconden en probeer opnieuw.",
+    "rateLimitedWaiting": "Te snel — wacht ~{seconds}s, daarna gaan we automatisch verder…",
+    "partialUpload": "{ok} geüpload, {fail} nog open — tik opnieuw op Uploaden of wacht op auto-retry."
   },
   "editEvent": {
     "title": "Event Bewerken",

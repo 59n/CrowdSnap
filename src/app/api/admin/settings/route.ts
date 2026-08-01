@@ -3,10 +3,11 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import {
   getPublicSettings,
-  saveAppSettings,
+  saveAppSettingsAsync,
   getSetting,
   type AppSettings,
 } from '@/lib/settings';
+import { verifyPassword } from '@/lib/password';
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -37,7 +38,8 @@ export async function PUT(request: Request) {
   }
 
   const currentPassword = body.currentPassword ?? '';
-  if (!currentPassword || currentPassword !== getSetting('ADMIN_PASSWORD')) {
+  const pwCheck = await verifyPassword(currentPassword, getSetting('ADMIN_PASSWORD'));
+  if (!currentPassword || !pwCheck.ok) {
     return NextResponse.json(
       { error: 'Current admin password is required (and must be correct)' },
       { status: 403 }
@@ -49,7 +51,7 @@ export async function PUT(request: Request) {
   }
 
   try {
-    const { restartRequired } = saveAppSettings(body.values);
+    const { restartRequired } = await saveAppSettingsAsync(body.values);
     return NextResponse.json({
       success: true,
       restartRequired,

@@ -44,21 +44,25 @@ RUN chown nextjs:nodejs .next
 # https://nextjs.org/docs/advanced-features/output-file-tracing
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+COPY --from=builder --chown=nextjs:nodejs /app/public ./public
 
 # Copy Prisma schema and generated client for runtime usage
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
+# pg adapter + runtime deps are included in standalone trace when imported;
+# ensure prisma CLI engines are present for generate-less deploys
+COPY --from=builder /app/node_modules/@prisma/engines ./node_modules/@prisma/engines
+COPY --from=builder /app/node_modules/@prisma/client ./node_modules/@prisma/client
 
 # Make sure we have the storage dir created
-RUN mkdir -p /app/storage && chown nextjs:nodejs /app/storage
+RUN mkdir -p /app/storage /app/data && chown -R nextjs:nodejs /app/storage /app/data
 
 USER nextjs
 
 EXPOSE 3000
 
-ENV PORT 3000
-# set hostname to localhost
-ENV HOSTNAME "0.0.0.0"
+ENV PORT=3000
+ENV HOSTNAME=0.0.0.0
 
 CMD ["node", "server.js"]

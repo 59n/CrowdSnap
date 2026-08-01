@@ -6,56 +6,67 @@ import fs from 'fs';
 import { ZipArchive } from 'archiver';
 import { Readable, PassThrough } from 'stream';
 import { resolveReadPath } from '@/lib/storage';
+import { sanitizeZipEntryName } from '@/lib/zip-names';
+import { isSafeId } from '@/lib/path-safe';
 
-export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(
+  _request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
   const session = await getServerSession(authOptions);
-  
+
   if (!session || session.user?.role !== 'ADMIN') {
     return new NextResponse('Unauthorized', { status: 401 });
   }
 
   const { id } = await params;
+  if (!isSafeId(id)) {
+    return new NextResponse('Not found', { status: 404 });
+  }
 
   const event = await prisma.event.findUnique({
-      where: { id: id },
-      include: { uploads: true }
+    where: { id },
+    include: { uploads: true },
   });
 
   if (!event) {
-      return new NextResponse('Event not found', { status: 404 });
+    return new NextResponse('Event not found', { status: 404 });
   }
 
-  // Use a PassThrough stream to pipe archiver data into the Web Response
   const passthrough = new PassThrough();
-  // @ts-ignore
+  
   const webStream = Readable.toWeb(passthrough);
 
-  // archiver v8+: class-based API (no longer archiver('zip', opts))
   const archive = new ZipArchive({
-      zlib: { level: 0 } // No compression, just store to save CPU
+    zlib: { level: 0 },
   });
 
   archive.on('error', (err: Error) => {
-      console.error("ZIP engine error:", err);
+    console.error('ZIP engine error:', err);
   });
 
   archive.pipe(passthrough);
 
-  // Append each file to the archive (primary or replica)
+  const usedNames = new Set<string>();
   for (const upload of event.uploads) {
-      const filePath = resolveReadPath(upload.relativePath);
-      if (filePath && fs.existsSync(filePath)) {
-          archive.file(filePath, { name: upload.originalName || upload.storedName });
-      }
+    const filePath = resolveReadPath(upload.relativePath);
+    if (filePath && fs.existsSync(filePath)) {
+      const name = sanitizeZipEntryName(
+        upload.originalName,
+        upload.storedName,
+        usedNames
+      );
+      archive.file(filePath, { name });
+    }
   }
 
-  // Finalize archive (closes stream)
   archive.finalize();
 
-  return new NextResponse(webStream as any, {
-      headers: {
-          'Content-Type': 'application/zip',
-          'Content-Disposition': `attachment; filename="event-${id}-export.zip"`,
-      }
+  return new NextResponse(webStream as unknown as BodyInit, {
+    headers: {
+      'Content-Type': 'application/zip',
+      'Content-Disposition': `attachment; filename="event-${id}-export.zip"`,
+      'Cache-Control': 'private, no-store',
+    },
   });
 }

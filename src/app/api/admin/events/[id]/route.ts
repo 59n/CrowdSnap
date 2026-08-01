@@ -7,6 +7,8 @@ import { deleteUploadFiles, getPrimaryPath, getReplicaPath, safeUnlink } from '@
 import fs from 'fs';
 import path from 'path';
 import { isPastEndDate } from '@/lib/events';
+import { clampMaxFileSizeMB } from '@/lib/file-type';
+import { verifyPassword } from '@/lib/password';
 
 export async function PATCH(request: Request, props: { params: Promise<{ id: string }> }) {
   const params = await props.params;
@@ -115,7 +117,7 @@ export async function PATCH(request: Request, props: { params: Promise<{ id: str
     if (name !== undefined) data.name = name;
     if (description !== undefined) data.description = description;
     if (language !== undefined) data.language = language;
-    if (maxFileSizeMB !== undefined) data.maxFileSizeMB = maxFileSizeMB;
+    if (maxFileSizeMB !== undefined) data.maxFileSizeMB = clampMaxFileSizeMB(maxFileSizeMB);
     if (guestGalleryEnabled !== undefined) data.guestGalleryEnabled = guestGalleryEnabled;
     if (date) data.date = new Date(date);
     if (endDate !== undefined) data.endDate = endDate ? new Date(endDate) : null;
@@ -166,7 +168,8 @@ export async function DELETE(request: Request, props: { params: Promise<{ id: st
   }
 
   const confirmPassword = request.headers.get('x-confirm-password');
-  if (!confirmPassword || confirmPassword !== getSetting('ADMIN_PASSWORD')) {
+  const pw = await verifyPassword(confirmPassword || '', getSetting('ADMIN_PASSWORD'));
+  if (!confirmPassword || !pw.ok) {
     return NextResponse.json({ error: 'Invalid password' }, { status: 403 });
   }
 

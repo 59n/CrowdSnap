@@ -124,7 +124,12 @@
     "eventDisabledDesc": "The host has paused uploads for now. Please try again later or ask the host.",
     "eventArchivedTitle": "This event is no longer available",
     "eventArchivedDesc": "This event has been archived by the host and is no longer accepting uploads.",
-    "backHome": "Back to home"
+    "backHome": "Back to home",
+    "rateLimitedTitle": "Slow down a moment",
+    "rateLimitedDesc": "You're uploading very quickly. We'll retry automatically in about {seconds} seconds.",
+    "rateLimitedGiveUp": "Some photos couldn't be uploaded yet. Please wait about {seconds} seconds and try again.",
+    "rateLimitedWaiting": "Rate limited — waiting ~{seconds}s then continuing automatically…",
+    "partialUpload": "Uploaded {ok}, {fail} still pending — tap Upload again or wait for auto-retry."
   },
   "editEvent": {
     "title": "Edit Event",

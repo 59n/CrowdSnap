@@ -44,17 +44,28 @@ export function getEventStatus(event: EventLike): EventStatus {
   return 'active';
 }
 
+let lastExpireAt = 0;
+const EXPIRE_TTL_MS = 5 * 60 * 1000; // at most once per 5 minutes process-wide
+
 /**
  * Flip isActive → false for events whose endDate has passed.
- * Safe to call on every admin/guest hit; cheap updateMany.
+ * Throttled: not a write on every guest request.
  */
-export async function expirePastEvents(): Promise<number> {
-  // endDate stored as date-only midnight; anything strictly before today UTC start
-  // is definitely past. For "today is end day" we still allow until end-of-day,
-  // so only expire when endDate's calendar day is before today.
-  const now = new Date();
+export async function expirePastEvents(force = false): Promise<number> {
+  const now = Date.now();
+  if (!force && now - lastExpireAt < EXPIRE_TTL_MS) return 0;
+  lastExpireAt = now;
+
   const startOfTodayUtc = new Date(
-    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0, 0)
+    Date.UTC(
+      new Date(now).getUTCFullYear(),
+      new Date(now).getUTCMonth(),
+      new Date(now).getUTCDate(),
+      0,
+      0,
+      0,
+      0
+    )
   );
 
   const result = await prisma.event.updateMany({
@@ -67,4 +78,9 @@ export async function expirePastEvents(): Promise<number> {
   });
 
   return result.count;
+}
+
+/** Test helper */
+export function resetExpireThrottle() {
+  lastExpireAt = 0;
 }

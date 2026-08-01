@@ -1,5 +1,8 @@
 import fs from 'fs';
 import path from 'path';
+import { isAllowedStoragePath } from '@/lib/path-safe';
+import { hashPassword, isPasswordHash } from '@/lib/password';
+import { clampMaxFileSizeMB } from '@/lib/file-type';
 
 /**
  * Runtime app settings — editable from the admin panel.
@@ -171,16 +174,19 @@ export const SETTING_FIELDS: SettingFieldMeta[] = [
   },
 ];
 
-const SETTINGS_DIR = path.join(process.cwd(), 'data');
+// turbopackIgnore: do not NFT-trace entire project from process.cwd()
+const PROJECT_ROOT = /* turbopackIgnore: true */ process.cwd();
+const SETTINGS_DIR = path.join(PROJECT_ROOT, 'data');
 const SETTINGS_FILE = path.join(SETTINGS_DIR, 'settings.json');
-const ENV_FILE = path.join(process.cwd(), '.env');
+const ENV_FILE = path.join(PROJECT_ROOT, '.env');
 
 const DEFAULTS: AppSettings = {
   STORAGE_PATH: './storage',
   STORAGE_REPLICA_PATH: '',
   STORAGE_OVERFLOW_FREE_GB: 10,
   STORAGE_OVERFLOW_THRESHOLD: 98,
-  ADMIN_PASSWORD: 'admin123',
+  // No default password — must be set via env/settings
+  ADMIN_PASSWORD: '',
   NEXTAUTH_URL: 'http://localhost:3000',
   NEXTAUTH_SECRET: '',
   MAX_UPLOAD_MB: 100,
@@ -297,20 +303,33 @@ function normalizeIncoming(partial: Partial<AppSettings>, current: AppSettings):
     }
   }
 
-  // Clamp overflow knobs
+  // Clamp overflow knobs / max upload
   next.STORAGE_OVERFLOW_FREE_GB = Math.max(1, Math.min(500, next.STORAGE_OVERFLOW_FREE_GB));
   next.STORAGE_OVERFLOW_THRESHOLD = Math.max(50, Math.min(100, next.STORAGE_OVERFLOW_THRESHOLD));
-  next.MAX_UPLOAD_MB = Math.max(1, Math.min(5000, next.MAX_UPLOAD_MB));
+  next.MAX_UPLOAD_MB = clampMaxFileSizeMB(next.MAX_UPLOAD_MB);
+
+  // Storage path allowlist: reject traversal
+  if (!isAllowedStoragePath(next.STORAGE_PATH)) {
+    next.STORAGE_PATH = current.STORAGE_PATH || DEFAULTS.STORAGE_PATH;
+  }
+  if (next.STORAGE_REPLICA_PATH && !isAllowedStoragePath(next.STORAGE_REPLICA_PATH)) {
+    next.STORAGE_REPLICA_PATH = current.STORAGE_REPLICA_PATH || '';
+  }
 
   return next;
 }
 
-/** Write settings.json (source of truth for the running app). */
+/** Write settings.json (source of truth for the running app). Mode 0600 when possible. */
 function writeSettingsFile(settings: AppSettings) {
   fs.mkdirSync(SETTINGS_DIR, { recursive: true });
   const tmp = SETTINGS_FILE + '.tmp';
-  fs.writeFileSync(tmp, JSON.stringify(settings, null, 2) + '\n', 'utf8');
+  fs.writeFileSync(tmp, JSON.stringify(settings, null, 2) + '\n', { encoding: 'utf8', mode: 0o600 });
   fs.renameSync(tmp, SETTINGS_FILE);
+  try {
+    fs.chmodSync(SETTINGS_FILE, 0o600);
+  } catch {
+    /* windows etc */
+  }
 }
 
 /**
@@ -381,16 +400,31 @@ export interface SaveSettingsResult {
 /**
  * Persist settings to data/settings.json and .env.
  * Secret fields left as empty string are not changed.
+ * ADMIN_PASSWORD plaintext is hashed before storage.
  */
 export function saveAppSettings(partial: Partial<AppSettings>): SaveSettingsResult {
   const current = getAppSettings();
   const next = normalizeIncoming(partial, current);
 
+  // Hash new admin password if provided as plaintext
+  if (
+    partial.ADMIN_PASSWORD &&
+    String(partial.ADMIN_PASSWORD).trim() &&
+    !isPasswordHash(String(next.ADMIN_PASSWORD))
+  ) {
+    // sync hash via deasync not available — use stored sync scrypt alternative
+    // saveAppSettings is called from async routes; prefer asyncSaveAppSettings.
+    // For sync path used by auth rehash, we use crypto scryptSync:
+    const crypto = require('crypto') as typeof import('crypto');
+    const salt = crypto.randomBytes(16);
+    const derived = crypto.scryptSync(String(partial.ADMIN_PASSWORD), salt, 64);
+    next.ADMIN_PASSWORD = `scrypt$${salt.toString('base64')}$${derived.toString('base64')}`;
+  }
+
   writeSettingsFile(next);
   writeEnvFile(next);
   invalidateSettingsCache();
 
-  // Also push into process.env immediately for this process
   for (const field of SETTING_FIELDS) {
     const val = String(next[field.key] ?? '');
     if (val === '' && field.optional) delete process.env[field.key];
@@ -404,12 +438,21 @@ export function saveAppSettings(partial: Partial<AppSettings>): SaveSettingsResu
   return { settings: getAppSettings(), restartRequired };
 }
 
-/** Public-safe view: secrets masked. */
+/** Async variant that uses async hashPassword. */
+export async function saveAppSettingsAsync(
+  partial: Partial<AppSettings>
+): Promise<SaveSettingsResult> {
+  const copy = { ...partial };
+  if (copy.ADMIN_PASSWORD && String(copy.ADMIN_PASSWORD).trim() && !isPasswordHash(String(copy.ADMIN_PASSWORD))) {
+    copy.ADMIN_PASSWORD = await hashPassword(String(copy.ADMIN_PASSWORD));
+  }
+  return saveAppSettings(copy);
+}
+
+/** Public-safe view: secrets masked (no filesystem paths). */
 export function getPublicSettings(): {
   values: Record<string, string | number | boolean | null>;
   fields: SettingFieldMeta[];
-  settingsPath: string;
-  envPath: string;
 } {
   const s = getAppSettings();
   const values: Record<string, string | number | boolean | null> = {};
@@ -427,8 +470,6 @@ export function getPublicSettings(): {
   return {
     values,
     fields: SETTING_FIELDS,
-    settingsPath: SETTINGS_FILE,
-    envPath: ENV_FILE,
   };
 }
 

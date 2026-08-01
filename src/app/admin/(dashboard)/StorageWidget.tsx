@@ -87,7 +87,7 @@ export default function StorageWidget() {
       fetchStorage();
       fetchReplica();
       fetchOverflow();
-    }, 15_000);
+    }, 60_000);
     return () => clearInterval(interval);
   }, [fetchStorage, fetchReplica, fetchOverflow]);
 

@@ -119,7 +119,12 @@
     "eventDisabledDesc": "El anfitrión ha pausado las subidas. Inténtalo más tarde.",
     "eventArchivedTitle": "Este evento ya no está disponible",
     "eventArchivedDesc": "Este evento ha sido archivado y ya no acepta subidas.",
-    "backHome": "Volver al inicio"
+    "backHome": "Volver al inicio",
+    "rateLimitedTitle": "Ve un poco más despacio",
+    "rateLimitedDesc": "Estás subiendo muy rápido. Reintentaremos en unos {seconds} segundos.",
+    "rateLimitedGiveUp": "Algunas fotos no se pudieron subir. Espera unos {seconds} segundos e inténtalo de nuevo.",
+    "rateLimitedWaiting": "Demasiado rápido — esperando ~{seconds}s y continuamos solos…",
+    "partialUpload": "Subidas {ok}, {fail} pendientes — pulsa de nuevo o espera el reintento."
   },
   "editEvent": {
     "title": "Editar Evento",

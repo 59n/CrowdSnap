@@ -119,7 +119,12 @@
     "eventDisabledDesc": "O anfitrião pausou os envios. Tente novamente mais tarde.",
     "eventArchivedTitle": "Este evento já não está disponível",
     "eventArchivedDesc": "Este evento foi arquivado e já não aceita envios.",
-    "backHome": "Voltar ao início"
+    "backHome": "Voltar ao início",
+    "rateLimitedTitle": "Vá um pouco mais devagar",
+    "rateLimitedDesc": "Está a enviar muito depressa. Vamos tentar de novo em cerca de {seconds} segundos.",
+    "rateLimitedGiveUp": "Algumas fotos ainda não foram enviadas. Espere cerca de {seconds} segundos e tente novamente.",
+    "rateLimitedWaiting": "Demasiado rápido — à espera de ~{seconds}s e depois continuamos…",
+    "partialUpload": "Enviadas {ok}, {fail} pendentes — toque de novo ou aguarde o retry."
   },
   "editEvent": {
     "title": "Editar Evento",
