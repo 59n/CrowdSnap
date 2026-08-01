@@ -51,6 +51,13 @@ gallery.html
 /storage/
 /tmp/
 /scripts/stress_test/
+/data/settings.json
+/data/settings.json.tmp
+
+
+# Compiled macOS free-space helper (built from scripts/macos-disk-free.swift)
+/scripts/macos-disk-free
+
 
 # Ensure all env variations are strictly ignored
 .env

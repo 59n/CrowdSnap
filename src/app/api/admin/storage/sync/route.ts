@@ -1,36 +1,33 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
-import fs from 'fs';
 import path from 'path';
-import { REPLICA_PATH } from '@/lib/storage';
+import prisma from '@/lib/db';
+import {
+  getReplicaPath,
+  getPrimaryPath,
+  isReplicaAvailable,
+  diffStorageTrees,
+  syncMissingFiles,
+  filterToAllowedEventRels,
+  findOrphanRelativePaths,
+  type KnownUpload,
+} from '@/lib/storage';
 
-const BASE_PATH = process.env.STORAGE_PATH || './storage';
-
-function syncDir(srcDir: string, destDir: string): { copied: number; skipped: number; failed: number } {
-  let copied = 0, skipped = 0, failed = 0;
-  if (!fs.existsSync(srcDir)) return { copied, skipped, failed };
-  fs.mkdirSync(destDir, { recursive: true });
-  for (const entry of fs.readdirSync(srcDir, { withFileTypes: true })) {
-    const srcPath = path.join(srcDir, entry.name);
-    const destPath = path.join(destDir, entry.name);
-    if (entry.isDirectory()) {
-      const sub = syncDir(srcPath, destPath);
-      copied += sub.copied; skipped += sub.skipped; failed += sub.failed;
-    } else if (fs.existsSync(destPath)) {
-      skipped++;
-    } else {
-      try { fs.copyFileSync(srcPath, destPath); copied++; }
-      catch (e) { console.error(`[Sync] Failed: ${srcPath}`, e); failed++; }
-    }
-  }
-  return { copied, skipped, failed };
+async function loadKnownUploads(): Promise<KnownUpload[]> {
+  return prisma.upload.findMany({
+    select: { id: true, eventId: true, storedName: true },
+  });
 }
 
 /**
  * POST /api/admin/storage/sync
- * direction=to_replica (default): primary → replica
- * direction=to_primary:           replica → primary (sync back after overflow)
+ * direction=to_replica (default): primary → replica (files only on Mac)
+ * direction=to_primary:           replica → primary (files only on SSD)
+ * direction=both:                 bidirectional merge
+ *
+ * Only files that belong to a DB upload (or event covers) are copied.
+ * That prevents deleted photos from being resurrected off the SSD.
  */
 export async function POST(request: Request) {
   const session = await getServerSession(authOptions);
@@ -38,75 +35,129 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  if (!REPLICA_PATH) {
+  if (!getReplicaPath()) {
     return NextResponse.json({ error: 'STORAGE_REPLICA_PATH is not configured' }, { status: 400 });
   }
 
-  try { fs.accessSync(REPLICA_PATH, fs.constants.W_OK); }
-  catch { return NextResponse.json({ error: 'Replica not accessible (SSD not mounted?)' }, { status: 503 }); }
+  if (!isReplicaAvailable()) {
+    return NextResponse.json({ error: 'Replica not accessible (SSD not mounted?)' }, { status: 503 });
+  }
 
   let direction = 'to_replica';
-  try { const body = await request.json(); direction = body.direction ?? 'to_replica'; } catch {}
+  try {
+    const body = await request.json();
+    direction = body.direction ?? 'to_replica';
+  } catch {
+    // empty body → default
+  }
 
-  const primaryEventsDir = path.join(BASE_PATH, 'events');
-  const replicaEventsDir = path.join(REPLICA_PATH, 'events');
+  if (direction !== 'to_primary' && direction !== 'to_replica' && direction !== 'both') {
+    return NextResponse.json({ error: 'Invalid direction' }, { status: 400 });
+  }
 
-  const { copied, skipped, failed } =
-    direction === 'to_primary'
-      ? syncDir(replicaEventsDir, primaryEventsDir)
-      : syncDir(primaryEventsDir, replicaEventsDir);
+  const uploads = await loadKnownUploads();
+  const primaryEventsDir = path.join(getPrimaryPath(), 'events');
+  const replicaEventsDir = path.join(getReplicaPath()!, 'events');
+  const diff = diffStorageTrees();
 
-  return NextResponse.json({ success: true, direction, copied, skipped, failed });
+  let toReplica = { copied: 0, skipped: 0, failed: 0 };
+  let toPrimary = { copied: 0, skipped: 0, failed: 0 };
+  let skippedOrphans = 0;
+
+  if (direction === 'to_primary' || direction === 'both') {
+    const allowed = filterToAllowedEventRels(diff.replicaOnly, uploads);
+    skippedOrphans += diff.replicaOnly.length - allowed.length;
+    toPrimary = syncMissingFiles(replicaEventsDir, primaryEventsDir, allowed);
+  }
+
+  if (direction === 'to_replica' || direction === 'both') {
+    const d = direction === 'both' ? diffStorageTrees() : diff;
+    const allowed = filterToAllowedEventRels(d.primaryOnly, uploads);
+    skippedOrphans += d.primaryOnly.length - allowed.length;
+    toReplica = syncMissingFiles(primaryEventsDir, replicaEventsDir, allowed);
+  }
+
+  const after = diffStorageTrees();
+  // Re-diff only allowed files for "in sync" of real uploads
+  const afterPrimaryOnlyAllowed = filterToAllowedEventRels(after.primaryOnly, uploads);
+  const afterReplicaOnlyAllowed = filterToAllowedEventRels(after.replicaOnly, uploads);
+  const orphans = findOrphanRelativePaths(uploads);
+
+  return NextResponse.json({
+    success: true,
+    direction,
+    copied: toReplica.copied + toPrimary.copied,
+    skipped: toReplica.skipped + toPrimary.skipped,
+    failed: toReplica.failed + toPrimary.failed,
+    skippedOrphans,
+    toReplica,
+    toPrimary,
+    remaining: {
+      missingOnReplica: afterPrimaryOnlyAllowed.length,
+      missingOnPrimary: afterReplicaOnlyAllowed.length,
+      inSync: afterPrimaryOnlyAllowed.length === 0 && afterReplicaOnlyAllowed.length === 0,
+    },
+    orphans: {
+      count: orphans.orphans.length,
+      originals: orphans.orphans.filter((f) => f.includes('/originals/')).length,
+    },
+  });
 }
 
 /**
  * GET /api/admin/storage/sync
- * Returns replica status: configured, mounted, file counts.
+ * Returns replica status using real file-set comparison, plus orphan counts.
  */
-export async function GET(request: Request) {
+export async function GET() {
   const session = await getServerSession(authOptions);
   if (!session || session.user?.role !== 'ADMIN') {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  if (!REPLICA_PATH) {
+  if (!getReplicaPath()) {
     return NextResponse.json({ configured: false, mounted: false });
   }
 
-  let mounted = false;
-  let primaryCount = 0;
-  let replicaCount = 0;
-
-  try {
-    fs.accessSync(REPLICA_PATH, fs.constants.W_OK);
-    mounted = true;
-  } catch {
-    return NextResponse.json({ configured: true, mounted: false, path: REPLICA_PATH });
+  if (!isReplicaAvailable()) {
+    return NextResponse.json({
+      configured: true,
+      mounted: false,
+      path: getReplicaPath(),
+    });
   }
 
-  // Count only originals/ — one file per upload
-  function countOriginals(eventsDir: string): number {
-    if (!fs.existsSync(eventsDir)) return 0;
-    let count = 0;
-    for (const eventEntry of fs.readdirSync(eventsDir, { withFileTypes: true })) {
-      if (!eventEntry.isDirectory()) continue;
-      const originalsDir = path.join(eventsDir, eventEntry.name, 'originals');
-      if (fs.existsSync(originalsDir)) {
-        count += fs.readdirSync(originalsDir).length;
-      }
-    }
-    return count;
-  }
-
-  primaryCount = countOriginals(path.join(BASE_PATH, 'events'));
-  replicaCount = countOriginals(path.join(REPLICA_PATH, 'events'));
+  const uploads = await loadKnownUploads();
+  const diff = diffStorageTrees();
+  const missingOnReplica = filterToAllowedEventRels(diff.primaryOnly, uploads).length;
+  const missingOnPrimary = filterToAllowedEventRels(diff.replicaOnly, uploads).length;
+  const inSync = missingOnReplica === 0 && missingOnPrimary === 0;
+  const orphans = findOrphanRelativePaths(uploads);
+  const orphanOriginals = orphans.orphans.filter((f) => f.includes('/originals/')).length;
 
   return NextResponse.json({
     configured: true,
-    mounted,
-    path: REPLICA_PATH,
-    primaryCount,
-    replicaCount,
-    inSync: primaryCount === replicaCount,
+    mounted: true,
+    path: getReplicaPath(),
+    // Disk originals (includes orphans) — kept for transparency
+    primaryCount: diff.primaryOriginals,
+    replicaCount: diff.replicaOriginals,
+    // DB is source of truth for the gallery
+    dbCount: uploads.length,
+    // Full tree file counts
+    primaryFiles: diff.primaryCount,
+    replicaFiles: diff.replicaCount,
+    missingOnReplica,
+    missingOnPrimary,
+    missingOriginalsOnReplica: filterToAllowedEventRels(
+      diff.primaryOnly.filter((f) => f.includes('/originals/')),
+      uploads
+    ).length,
+    missingOriginalsOnPrimary: filterToAllowedEventRels(
+      diff.replicaOnly.filter((f) => f.includes('/originals/')),
+      uploads
+    ).length,
+    inSync,
+    orphanFiles: orphans.orphans.length,
+    orphanOriginals,
   });
 }

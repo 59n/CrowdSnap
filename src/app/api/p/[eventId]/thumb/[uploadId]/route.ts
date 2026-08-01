@@ -3,9 +3,7 @@ import prisma from '@/lib/db';
 import fs from 'fs';
 import path from 'path';
 import sharp from 'sharp';
-import { REPLICA_PATH } from '@/lib/storage';
-
-const BASE_PATH = process.env.STORAGE_PATH || './storage';
+import { getPrimaryPath, resolveReadPath } from '@/lib/storage';
 
 export async function GET(
   _request: Request,
@@ -19,31 +17,14 @@ export async function GET(
     return new NextResponse('Not found', { status: 404 });
   }
 
-  const thumbPath = path.join(BASE_PATH, 'events', eventId, 'thumbs', `${uploadId}.jpg`);
-  const originalPath = path.join(BASE_PATH, upload.relativePath);
-
-  // Replica fallbacks (if primary SSD is missing a file but replica has it)
-  const replicaThumbPath = REPLICA_PATH
-    ? path.join(REPLICA_PATH, 'events', eventId, 'thumbs', `${uploadId}.jpg`)
-    : null;
-  const replicaOriginalPath = REPLICA_PATH
-    ? path.join(REPLICA_PATH, upload.relativePath)
-    : null;
-
-  const effectiveThumb =
-    fs.existsSync(thumbPath) ? thumbPath :
-    replicaThumbPath && fs.existsSync(replicaThumbPath) ? replicaThumbPath :
-    null;
-
-  const effectiveOriginal =
-    fs.existsSync(originalPath) ? originalPath :
-    replicaOriginalPath && fs.existsSync(replicaOriginalPath) ? replicaOriginalPath :
-    null;
+  const thumbPrimary = path.join(getPrimaryPath(), 'events', eventId, 'thumbs', `${uploadId}.jpg`);
+  const effectiveThumb = resolveReadPath(`events/${eventId}/thumbs/${uploadId}.jpg`);
+  const effectiveOriginal = resolveReadPath(upload.relativePath);
 
   // Serve existing thumbnail
   if (effectiveThumb) {
     const buffer = fs.readFileSync(effectiveThumb);
-    return new NextResponse(buffer, {
+    return new NextResponse(new Uint8Array(buffer), {
       headers: {
         'Content-Type': 'image/jpeg',
         'Content-Length': buffer.length.toString(),
@@ -62,9 +43,9 @@ export async function GET(
         .jpeg({ quality: 80 })
         .toBuffer();
       // Save to primary for future requests
-      fs.mkdirSync(path.dirname(thumbPath), { recursive: true });
-      fs.writeFileSync(thumbPath, thumbBuffer);
-      return new NextResponse(thumbBuffer, {
+      fs.mkdirSync(path.dirname(thumbPrimary), { recursive: true });
+      fs.writeFileSync(thumbPrimary, thumbBuffer);
+      return new NextResponse(new Uint8Array(thumbBuffer), {
         headers: {
           'Content-Type': 'image/jpeg',
           'Content-Length': thumbBuffer.length.toString(),

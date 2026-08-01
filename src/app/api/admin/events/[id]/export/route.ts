@@ -3,11 +3,9 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import prisma from '@/lib/db';
 import fs from 'fs';
-import path from 'path';
-import archiver from 'archiver';
+import { ZipArchive } from 'archiver';
 import { Readable, PassThrough } from 'stream';
-
-const BASE_PATH = process.env.STORAGE_PATH || './storage';
+import { resolveReadPath } from '@/lib/storage';
 
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
@@ -32,20 +30,21 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   // @ts-ignore
   const webStream = Readable.toWeb(passthrough);
 
-  const archive = archiver('zip', {
+  // archiver v8+: class-based API (no longer archiver('zip', opts))
+  const archive = new ZipArchive({
       zlib: { level: 0 } // No compression, just store to save CPU
   });
 
-  archive.on('error', (err) => {
+  archive.on('error', (err: Error) => {
       console.error("ZIP engine error:", err);
   });
 
   archive.pipe(passthrough);
 
-  // Append each file to the archive
+  // Append each file to the archive (primary or replica)
   for (const upload of event.uploads) {
-      const filePath = path.join(BASE_PATH, upload.relativePath);
-      if (fs.existsSync(filePath)) {
+      const filePath = resolveReadPath(upload.relativePath);
+      if (filePath && fs.existsSync(filePath)) {
           archive.file(filePath, { name: upload.originalName || upload.storedName });
       }
   }

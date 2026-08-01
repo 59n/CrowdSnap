@@ -1,5 +1,6 @@
 import NextAuth, { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
+import { getSetting } from "@/lib/settings";
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -9,9 +10,8 @@ export const authOptions: NextAuthOptions = {
         password: { label: "Password", type: "password" }
       },
       async authorize(credentials, req) {
-        // For a private self-hosted app, an env password is the simplest secure approach
-        // We can also check against user DB if preferred, but env var avoids first-time setup UI
-        const adminPassword = process.env.ADMIN_PASSWORD || "admin123";
+        // Reads live admin settings (panel / .env), not a frozen env snapshot
+        const adminPassword = getSetting("ADMIN_PASSWORD") || "admin123";
         
         if (credentials?.password === adminPassword) {
             return { id: "admin", name: "Admin", email: "admin@local.host", role: "ADMIN" };

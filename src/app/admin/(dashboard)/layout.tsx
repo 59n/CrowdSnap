@@ -47,7 +47,11 @@ export default async function AdminLayout({
 
         {/* Navigation */}
         <div className="flex-1 px-3 py-3 overflow-y-auto">
-          <SidebarNav eventsLabel={t.events} createLabel={t.create} />
+          <SidebarNav
+            eventsLabel={t.events}
+            createLabel={t.create}
+            settingsLabel={(dict as any).settings?.nav ?? "Settings"}
+          />
         </div>
 
         {/* Footer */}

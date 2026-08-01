@@ -5,7 +5,8 @@ import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import prisma from '@/lib/db';
 import sharp from 'sharp';
-import { getReplicaFilePath, initEventStorage, replicateCopy, replicateWrite, getWriteRoot } from '@/lib/storage';
+import { initEventStorage, getWriteRoot, mirrorToOtherSide, mirrorBufferToOtherSide } from '@/lib/storage';
+import { expirePastEvents, isEventOpenForGuests } from '@/lib/events';
 
 // Disable Next.js default body parser to handle raw multipart stream
 export const config = {
@@ -39,6 +40,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   // Read device identifier (set by client, used to track ownership)
   const deviceId = (req.headers['x-device-id'] as string) || null;
 
+  await expirePastEvents();
+
   // Validate event
   const event = await prisma.event.findUnique({
     where: { id: eventId },
@@ -48,8 +51,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(404).json({ error: 'Event not found' });
   }
 
-  if (!event.isActive) {
-    return res.status(403).json({ error: 'Event is not active' });
+  if (!isEventOpenForGuests(event)) {
+    return res.status(403).json({ error: 'Event is closed for uploads' });
   }
 
   const maxFileSize = event.maxFileSizeMB * 1024 * 1024;
@@ -106,13 +109,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           return resolve(null);
         }
 
-        // If writing to primary, also replicate to SSD
-        // If already writing to replica (overflow), no replication needed
-        if (!isOverflow) {
-          replicateCopy(originalPath, getReplicaFilePath(eventId, 'originals', storedName) ?? '');
-        } else {
+        // Mirror to the other volume so Mac ↔ SSD stay in sync.
+        // Normal: write primary, copy to SSD. Overflow: write SSD, try primary if space allows.
+        const relativeOriginal = `events/${eventId}/originals/${storedName}`;
+        if (isOverflow) {
           console.log(`[Overflow] Writing to replica for event ${eventId}: ${storedName}`);
         }
+        mirrorToOtherSide(originalPath, relativeOriginal, isOverflow);
 
         // Handle thumbnail generation
         if (mimeType.startsWith('image/')) {
@@ -128,9 +131,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
               .jpeg({ quality: 80 })
               .toBuffer();
             fs.writeFileSync(thumbPath, thumbBuffer);
-            if (!isOverflow) {
-              replicateWrite(getReplicaFilePath(eventId, 'thumbs', `${uuid}.jpg`) ?? '', thumbBuffer);
-            }
+            mirrorBufferToOtherSide(
+              thumbBuffer,
+              `events/${eventId}/thumbs/${uuid}.jpg`,
+              isOverflow
+            );
           } catch (e) {
             console.warn(`[Warning] Thumbnail generation failed for ${filename}:`, (e as Error).message);
             // Non-fatal error; image is saved but thumbnail won't be available
@@ -141,9 +146,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const metaPath = path.join(metaDir, `${uuid}.json`);
         const metaContent = JSON.stringify({ originalName: filename, size: bytesReceived, mimeType });
         fs.writeFileSync(metaPath, metaContent);
-        if (!isOverflow) {
-          replicateWrite(getReplicaFilePath(eventId, 'metadata', `${uuid}.json`) ?? '', Buffer.from(metaContent));
-        }
+        mirrorBufferToOtherSide(
+          Buffer.from(metaContent),
+          `events/${eventId}/metadata/${uuid}.json`,
+          isOverflow
+        );
 
         try {
           // Save to database

@@ -1,9 +1,6 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/db';
-import fs from 'fs';
-import path from 'path';
-
-const BASE_PATH = process.env.STORAGE_PATH || './storage';
+import { deleteUploadFiles } from '@/lib/storage';
 
 export async function DELETE(
   request: Request,
@@ -27,16 +24,8 @@ export async function DELETE(
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
-  // Delete files from disk (primary + replica)
-  const originalPath = path.join(BASE_PATH, upload.relativePath);
-  const thumbPath = path.join(BASE_PATH, 'events', eventId, 'thumbs', `${upload.id}.jpg`);
-  const metaPath = path.join(BASE_PATH, 'events', eventId, 'metadata', `${upload.id}.json`);
-
-  [originalPath, thumbPath, metaPath].forEach((p) => {
-    if (fs.existsSync(p)) fs.unlinkSync(p);
-  });
-
-  // Replica is intentionally never deleted — it's a permanent archive
+  // Remove from Mac + SSD (same as admin) so orphans / re-sync don't bring them back
+  deleteUploadFiles(upload.eventId, upload.id, upload.storedName);
 
   try {
     await prisma.upload.delete({ where: { id: uploadId } });

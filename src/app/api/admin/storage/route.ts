@@ -1,47 +1,57 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
-import fs from 'fs';
-import { getWriteRoot, isReplicaAvailable, REPLICA_PATH } from '@/lib/storage';
-
-const BASE_PATH = process.env.STORAGE_PATH || './storage';
+import { getDiskStats, getWriteRoot, isReplicaAvailable, getPrimaryPath, getReplicaPath } from '@/lib/storage';
 
 export async function GET() {
   const session = await getServerSession(authOptions);
-  
+
   if (!session || session.user?.role !== 'ADMIN') {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   try {
-    // Check if the storage directory exists, create if not
-    if (!fs.existsSync(BASE_PATH)) {
-        fs.mkdirSync(BASE_PATH, { recursive: true });
+    const stats = getDiskStats(getPrimaryPath());
+    if (!stats) {
+      return NextResponse.json({ error: 'Failed to read disk statistics' }, { status: 500 });
     }
-
-    // Get the exact filesystem stats for the local storage directory
-    const statfs = fs.statfsSync(BASE_PATH);
-    
-    // Calculate sizes in GB
-    const totalSpace = (statfs.blocks * statfs.bsize) / (1024 * 1024 * 1024);
-    const freeSpace = (statfs.bavail * statfs.bsize) / (1024 * 1024 * 1024);
-    const usedSpace = totalSpace - freeSpace;
-    const usagePercentage = (usedSpace / totalSpace) * 100;
 
     const { isOverflow } = getWriteRoot();
     const replicaReady = isReplicaAvailable();
 
-    return NextResponse.json({
-        totalGB: totalSpace,
-        usedGB: usedSpace,
-        freeGB: freeSpace,
-        percentage: usagePercentage,
-        isWarning: usagePercentage > 85,
-        isCritical: usagePercentage > 95,
-        isOverflow,
-        overflowReady: !!REPLICA_PATH && replicaReady,
-    });
+    // Warn / critical based on free space (clearer than % on large volumes)
+    const isWarning = stats.freeGB < 25 || stats.percentage > 90;
+    const isCritical = stats.freeGB < 10 || stats.percentage > 95;
 
+    let replica: {
+      totalGB: number;
+      freeGB: number;
+      usedGB: number;
+      percentage: number;
+    } | null = null;
+
+    const replicaPath = getReplicaPath();
+    if (replicaPath && replicaReady) {
+      const rStats = getDiskStats(replicaPath);
+      if (rStats) replica = rStats;
+    }
+
+    return NextResponse.json({
+      totalGB: stats.totalGB,
+      usedGB: stats.usedGB,
+      freeGB: stats.freeGB,
+      percentage: stats.percentage,
+      freeImmediateGB: stats.freeImmediateGB,
+      matchesSystemSettings: stats.matchesSystemSettings ?? false,
+      isWarning,
+      isCritical,
+      isOverflow,
+      overflowReady: !!getReplicaPath() && replicaReady,
+      // Clarify this is the Mac volume hosting STORAGE_PATH, not "app folder size"
+      volumeLabel: 'Mac disk',
+      path: getPrimaryPath(),
+      replica,
+    });
   } catch (error) {
     console.error('Failed to get disk usage:', error);
     return NextResponse.json({ error: 'Failed to read disk statistics' }, { status: 500 });

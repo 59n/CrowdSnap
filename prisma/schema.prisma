@@ -59,9 +59,13 @@ model Event {
   description   String?  @db.Text
   date          DateTime
   language      String   @default("en")
-  isActive      Boolean  @default(true)
-  maxFileSizeMB Int      @default(100)
-  createdAt     DateTime @default(now())
+  endDate              DateTime?
+  slug                 String?  @unique
+  isActive             Boolean  @default(true)
+  archivedAt           DateTime?
+  maxFileSizeMB        Int      @default(100)
+  guestGalleryEnabled  Boolean  @default(true)
+  createdAt            DateTime @default(now())
   uploads       Upload[]
 }
 

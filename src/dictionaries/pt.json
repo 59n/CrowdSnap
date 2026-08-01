@@ -10,9 +10,16 @@
     "noEventsYet": "Nenhum evento ainda",
     "noEventsDesc": "Crie seu primeiro evento para gerar códigos QR e coletar fotos.",
     "active": "Ativo",
-    "inactive": "Inativo",
+    "inactive": "Desativado",
     "uploads": "uploads",
-    "editDetails": "Editar Detalhes"
+    "editDetails": "Editar Detalhes",
+    "ended": "Terminado",
+    "archived": "Arquivado",
+    "endedArchived": "Ended / archived",
+    "allEvents": "Todos",
+    "noEventsInFilter": "No events in this filter.",
+    "showAllEvents": "Show all events",
+    "guestsBlocked": "Guests blocked"
   },
   "createEvent": {
     "title": "Criar Novo Evento",
@@ -41,6 +48,7 @@
     "guestQrCode": "Código QR e Link",
     "guestQrDesc": "Os convidados podem escanear isto ou usar o link para fazer upload.",
     "directLink": "Link Direto de Upload",
+    "originalUrl": "URL original (sempre ativo)",
     "shareLink": "Compartilhe este link ou código QR. Não é necessário aplicativo.",
     "files": "arquivos",
     "total": "total"
@@ -104,7 +112,14 @@
     "removeUpload": "Remover",
     "confirmRemove": "Remover este arquivo do evento?",
     "removedUpload": "Removido",
-    "failedRemove": "Falha ao remover"
+    "failedRemove": "Falha ao remover",
+    "eventEndedTitle": "Este evento terminou",
+    "eventEndedDesc": "O período de envio terminou. Obrigado por partilhar as suas fotos!",
+    "eventDisabledTitle": "Os envios estão temporariamente fechados",
+    "eventDisabledDesc": "O anfitrião pausou os envios. Tente novamente mais tarde.",
+    "eventArchivedTitle": "Este evento já não está disponível",
+    "eventArchivedDesc": "Este evento foi arquivado e já não aceita envios.",
+    "backHome": "Voltar ao início"
   },
   "editEvent": {
     "title": "Editar Evento",
@@ -114,6 +129,14 @@
     "saving": "Salvando...",
     "saveChanges": "Salvar alterações",
     "maxFileSize": "Tamanho máx. do arquivo (MB)",
+    "eventDate": "Data do evento",
+    "endDate": "Data de término (opcional)",
+    "slug": "URL personalizada para convidados",
+    "slugPlaceholder": "ex. sara-e-joao",
+    "slugDesc": "Apenas letras, números e hífens. O URL original permanece sempre ativo.",
+    "slugTaken": "Este URL já está em uso por outro evento.",
+    "guestGallery": "Galeria de convidados",
+    "guestGalleryDesc": "Permite que os convidados vejam e excluam seus próprios uploads.",
     "success": "Evento atualizado com sucesso",
     "error": "Erro ao atualizar evento"
   },
@@ -149,5 +172,10 @@
     "feature3Title": "Sem Limites de Tamanho",
     "feature3Desc": "Transmita arquivos de vídeo gigantes diretamente para o disco sem sobrecarregar a memória do servidor.",
     "footer": "Feito para seus eventos privados."
+  },
+  "settings": {
+    "nav": "Definições",
+    "title": "Definições",
+    "subtitle": "Faça a gestão de storage, auth e servidor sem editar .env à mão."
   }
 }

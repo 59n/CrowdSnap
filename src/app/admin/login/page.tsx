@@ -30,8 +30,7 @@ export default function LoginPage() {
       toast.error(t("login.invalid"));
       setLoading(false);
     } else {
-      router.push("/admin");
-      router.refresh();
+      window.location.href = "/admin";
     }
   };
 

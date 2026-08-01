@@ -2,10 +2,8 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import prisma from '@/lib/db';
-import fs from 'fs';
-import path from 'path';
-
-const BASE_PATH = process.env.STORAGE_PATH || './storage';
+import { deleteUploadFiles } from '@/lib/storage';
+import { getSetting } from '@/lib/settings';
 
 export async function GET(request: Request, props: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
@@ -45,7 +43,7 @@ export async function DELETE(request: Request, props: { params: Promise<{ id: st
 
   // Require password re-confirmation for mass deletion
   const confirmPassword = request.headers.get('x-confirm-password');
-  if (!confirmPassword || confirmPassword !== process.env.ADMIN_PASSWORD) {
+  if (!confirmPassword || confirmPassword !== getSetting('ADMIN_PASSWORD')) {
     return NextResponse.json({ error: 'Invalid password' }, { status: 403 });
   }
 
@@ -61,18 +59,11 @@ export async function DELETE(request: Request, props: { params: Promise<{ id: st
       return NextResponse.json({ error: 'Event not found' }, { status: 404 });
     }
 
-    // Delete all physical files
+    // Delete all physical files from Mac + SSD
     for (const upload of event.uploads) {
-      const originalPath = path.join(BASE_PATH, upload.relativePath);
-      const thumbPath = path.join(BASE_PATH, 'events', eventId, 'thumbs', `${upload.id}.jpg`);
-      const metaPath = path.join(BASE_PATH, 'events', eventId, 'metadata', `${upload.id}.json`);
-
-      [originalPath, thumbPath, metaPath].forEach(p => {
-          if (fs.existsSync(p)) fs.unlinkSync(p);
-      });
+      deleteUploadFiles(upload.eventId, upload.id, upload.storedName);
     }
 
-    // Delete from DB
     await prisma.upload.deleteMany({
       where: { eventId: eventId }
     });

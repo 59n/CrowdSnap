@@ -10,9 +10,16 @@
     "noEventsYet": "Aún no hay eventos",
     "noEventsDesc": "Crea tu primer evento para generar códigos QR y recopilar fotos.",
     "active": "Activo",
-    "inactive": "Inactivo",
+    "inactive": "Desactivado",
     "uploads": "subidas",
-    "editDetails": "Editar Detalles"
+    "editDetails": "Editar Detalles",
+    "ended": "Finalizado",
+    "archived": "Archivado",
+    "endedArchived": "Ended / archived",
+    "allEvents": "Todos",
+    "noEventsInFilter": "No events in this filter.",
+    "showAllEvents": "Show all events",
+    "guestsBlocked": "Guests blocked"
   },
   "createEvent": {
     "title": "Crear Nuevo Evento",
@@ -41,6 +48,7 @@
     "guestQrCode": "Enlace y Código QR",
     "guestQrDesc": "Los invitados pueden escanear esto o usar el enlace para subir fotos.",
     "directLink": "Enlace de subida directa",
+    "originalUrl": "URL original (siempre activa)",
     "shareLink": "Comparte este enlace o código QR. No se requiere app.",
     "files": "archivos",
     "total": "total"
@@ -104,7 +112,14 @@
     "removeUpload": "Eliminar",
     "confirmRemove": "¿Eliminar este archivo del evento?",
     "removedUpload": "Eliminado",
-    "failedRemove": "Error al eliminar"
+    "failedRemove": "Error al eliminar",
+    "eventEndedTitle": "Este evento ha terminado",
+    "eventEndedDesc": "El periodo de subida ha terminado. ¡Gracias por compartir tus fotos!",
+    "eventDisabledTitle": "Las subidas están temporalmente cerradas",
+    "eventDisabledDesc": "El anfitrión ha pausado las subidas. Inténtalo más tarde.",
+    "eventArchivedTitle": "Este evento ya no está disponible",
+    "eventArchivedDesc": "Este evento ha sido archivado y ya no acepta subidas.",
+    "backHome": "Volver al inicio"
   },
   "editEvent": {
     "title": "Editar Evento",
@@ -114,6 +129,14 @@
     "saving": "Guardando...",
     "saveChanges": "Guardar cambios",
     "maxFileSize": "Tamaño máx. archivo (MB)",
+    "eventDate": "Fecha del evento",
+    "endDate": "Fecha de fin (opcional)",
+    "slug": "URL personalizada para invitados",
+    "slugPlaceholder": "ej. sara-y-juan",
+    "slugDesc": "Solo letras, números y guiones. La URL original siempre permanece activa.",
+    "slugTaken": "Esta URL ya está en uso por otro evento.",
+    "guestGallery": "Galería de invitados",
+    "guestGalleryDesc": "Permite a los invitados ver y eliminar sus propias fotos.",
     "success": "Evento actualizado exitosamente",
     "error": "Error al actualizar evento"
   },
@@ -149,5 +172,10 @@
     "feature3Title": "Sin Límites de Tamaño",
     "feature3Desc": "Transmite archivos de video gigantes directamente al disco sin saturar la memoria del servidor.",
     "footer": "Creado para tus eventos privados."
+  },
+  "settings": {
+    "nav": "Ajustes",
+    "title": "Ajustes",
+    "subtitle": "Gestiona almacenamiento, auth y servidor sin editar .env a mano."
   }
 }

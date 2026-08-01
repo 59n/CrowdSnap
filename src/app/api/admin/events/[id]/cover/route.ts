@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import fs from 'fs';
-import { getFilePath, initEventStorage } from '@/lib/storage';
+import { getFilePath, initEventStorage, mirrorBufferToOtherSide } from '@/lib/storage';
 
 export async function POST(request: Request, props: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
@@ -30,10 +30,13 @@ export async function POST(request: Request, props: { params: Promise<{ id: stri
     // Save as cover.jpg or whatever extension
     const coverPath = getFilePath(id, 'metadata', 'cover.bin');
     fs.writeFileSync(coverPath, buffer);
+    mirrorBufferToOtherSide(buffer, `events/${id}/metadata/cover.bin`, false);
 
     // Also write mime type so we can serve it later
     const metaPath = getFilePath(id, 'metadata', 'cover_meta.json');
-    fs.writeFileSync(metaPath, JSON.stringify({ mimeType: file.type }));
+    const metaBuf = Buffer.from(JSON.stringify({ mimeType: file.type }));
+    fs.writeFileSync(metaPath, metaBuf);
+    mirrorBufferToOtherSide(metaBuf, `events/${id}/metadata/cover_meta.json`, false);
 
     return NextResponse.json({ success: true });
   } catch (error) {

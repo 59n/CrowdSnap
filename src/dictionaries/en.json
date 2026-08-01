@@ -10,9 +10,21 @@
     "noEventsYet": "No events yet",
     "noEventsDesc": "Create your first event to start generating QR codes and collecting photos from guests.",
     "active": "Active",
-    "inactive": "Inactive",
+    "inactive": "Disabled",
+    "ended": "Ended",
+    "archived": "Archived",
+    "endedArchived": "Ended / archived",
+    "allEvents": "All",
+    "noEventsInFilter": "No events in this filter.",
+    "showAllEvents": "Show all events",
+    "guestsBlocked": "Guests blocked",
     "uploads": "uploads",
     "editDetails": "Edit Details"
+  },
+  "settings": {
+    "nav": "Settings",
+    "title": "Settings",
+    "subtitle": "Manage storage, auth, and server configuration without editing .env by hand."
   },
   "createEvent": {
     "title": "Create New Event",
@@ -41,6 +53,7 @@
     "guestQrCode": "Guest QR Code & Link",
     "guestQrDesc": "Guests can scan this or use the link to upload photos directly from their phones.",
     "directLink": "Direct Upload Link",
+    "originalUrl": "Original URL (always active)",
     "shareLink": "Share this link or QR code with your guests. No app required.",
     "files": "files",
     "total": "total"
@@ -72,11 +85,11 @@
     "failedDeleteAll": "Failed to delete all uploads"
   },
   "storage": {
-    "capacity": "Storage Capacity",
+    "capacity": "Mac disk",
     "free": "free",
     "used": "used",
-    "critical": "Critical: Server is almost full.",
-    "warning": "Warning: Storage over 85%."
+    "critical": "Critical: Mac disk free space is very low.",
+    "warning": "Warning: Mac disk free space is getting low."
   },
   "guest": {
     "clickToUpload": "Click to upload",
@@ -104,7 +117,14 @@
     "removeUpload": "Remove",
     "confirmRemove": "Remove this file from the event?",
     "removedUpload": "Removed",
-    "failedRemove": "Failed to remove"
+    "failedRemove": "Failed to remove",
+    "eventEndedTitle": "This event has ended",
+    "eventEndedDesc": "The upload period for this event is over. Thank you for sharing your photos!",
+    "eventDisabledTitle": "Uploads are temporarily closed",
+    "eventDisabledDesc": "The host has paused uploads for now. Please try again later or ask the host.",
+    "eventArchivedTitle": "This event is no longer available",
+    "eventArchivedDesc": "This event has been archived by the host and is no longer accepting uploads.",
+    "backHome": "Back to home"
   },
   "editEvent": {
     "title": "Edit Event",
@@ -114,6 +134,14 @@
     "saving": "Saving...",
     "saveChanges": "Save changes",
     "maxFileSize": "Max File Size (MB)",
+    "eventDate": "Event Date",
+    "endDate": "End Date (Optional)",
+    "slug": "Custom Guest URL",
+    "slugPlaceholder": "e.g. sarah-and-john",
+    "slugDesc": "Letters, numbers and hyphens only. The original URL always stays active.",
+    "slugTaken": "This URL is already taken by another event.",
+    "guestGallery": "Guest Gallery",
+    "guestGalleryDesc": "Allow guests to see and delete their own uploads.",
     "success": "Event updated successfully",
     "error": "Error updating event"
   },

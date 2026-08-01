@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/db';
+import { expirePastEvents, isEventOpenForGuests } from '@/lib/events';
 
 export async function GET(
   request: Request,
@@ -12,9 +13,11 @@ export async function GET(
     return NextResponse.json({ uploads: [] });
   }
 
-  // Validate event is active
+  await expirePastEvents();
+
+  // Validate event is open for guests
   const event = await prisma.event.findUnique({ where: { id: eventId } });
-  if (!event || !event.isActive) {
+  if (!event || !isEventOpenForGuests(event)) {
     return NextResponse.json({ error: 'Event not found' }, { status: 404 });
   }
 

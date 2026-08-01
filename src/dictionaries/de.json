@@ -10,9 +10,16 @@
     "noEventsYet": "Noch keine Events",
     "noEventsDesc": "Erstelle dein erstes Event, um QR-Codes zu generieren.",
     "active": "Aktiv",
-    "inactive": "Inaktiv",
+    "inactive": "Deaktiviert",
     "uploads": "Uploads",
-    "editDetails": "Details bearbeiten"
+    "editDetails": "Details bearbeiten",
+    "ended": "Beendet",
+    "archived": "Archiviert",
+    "endedArchived": "Ended / archived",
+    "allEvents": "Alle",
+    "noEventsInFilter": "No events in this filter.",
+    "showAllEvents": "Show all events",
+    "guestsBlocked": "Guests blocked"
   },
   "createEvent": {
     "title": "Neues Event erstellen",
@@ -41,6 +48,7 @@
     "guestQrCode": "Gast QR Code & Link",
     "guestQrDesc": "Gäste können dies scannen oder den Link zum Hochladen nutzen.",
     "directLink": "Direkter Upload Link",
+    "originalUrl": "Original-URL (immer aktiv)",
     "shareLink": "Teile diesen Link oder QR-Code (keine App nötig).",
     "files": "Dateien",
     "total": "Insgesamt"
@@ -104,7 +112,14 @@
     "removeUpload": "Entfernen",
     "confirmRemove": "Diese Datei aus dem Event entfernen?",
     "removedUpload": "Entfernt",
-    "failedRemove": "Entfernen fehlgeschlagen"
+    "failedRemove": "Entfernen fehlgeschlagen",
+    "eventEndedTitle": "Diese Veranstaltung ist beendet",
+    "eventEndedDesc": "Der Upload-Zeitraum ist vorbei. Danke fürs Teilen eurer Fotos!",
+    "eventDisabledTitle": "Uploads sind vorübergehend geschlossen",
+    "eventDisabledDesc": "Der Gastgeber hat Uploads pausiert. Bitte später erneut versuchen.",
+    "eventArchivedTitle": "Diese Veranstaltung ist nicht mehr verfügbar",
+    "eventArchivedDesc": "Diese Veranstaltung wurde archiviert und nimmt keine Uploads mehr an.",
+    "backHome": "Zur Startseite"
   },
   "editEvent": {
     "title": "Event bearbeiten",
@@ -114,6 +129,14 @@
     "saving": "Speichern...",
     "saveChanges": "Änderungen speichern",
     "maxFileSize": "Max. Dateigröße (MB)",
+    "eventDate": "Veranstaltungsdatum",
+    "endDate": "Enddatum (optional)",
+    "slug": "Benutzerdefinierte Gäste-URL",
+    "slugPlaceholder": "z.B. sarah-und-jan",
+    "slugDesc": "Nur Buchstaben, Zahlen und Bindestriche. Die Original-URL bleibt immer aktiv.",
+    "slugTaken": "Diese URL wird bereits von einem anderen Event verwendet.",
+    "guestGallery": "Gäste-Galerie",
+    "guestGalleryDesc": "Erlaubt Gästen, ihre eigenen Uploads zu sehen und zu löschen.",
     "success": "Event erfolgreich aktualisiert",
     "error": "Fehler beim Aktualisieren des Events"
   },
@@ -149,5 +172,10 @@
     "feature3Title": "Keine Größenbeschränkungen",
     "feature3Desc": "Streamen Sie riesige Videodateien direkt auf die Festplatte, ohne den Arbeitsspeicher des Servers zu überlasten.",
     "footer": "Entwickelt für Ihre privaten Events."
+  },
+  "settings": {
+    "nav": "Einstellungen",
+    "title": "Einstellungen",
+    "subtitle": "Speicher, Auth und Server ohne manuelle .env-Bearbeitung."
   }
 }

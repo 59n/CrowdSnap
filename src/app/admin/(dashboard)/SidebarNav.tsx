@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { List, Plus } from "lucide-react";
+import { List, Plus, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface NavItem {
@@ -12,12 +12,21 @@ interface NavItem {
   exact?: boolean;
 }
 
-export default function SidebarNav({ eventsLabel, createLabel }: { eventsLabel: string; createLabel: string }) {
+export default function SidebarNav({
+  eventsLabel,
+  createLabel,
+  settingsLabel = "Settings",
+}: {
+  eventsLabel: string;
+  createLabel: string;
+  settingsLabel?: string;
+}) {
   const pathname = usePathname();
 
   const items: NavItem[] = [
     { href: "/admin", label: eventsLabel, icon: <List className="w-4 h-4" />, exact: true },
     { href: "/admin/create", label: createLabel, icon: <Plus className="w-4 h-4" /> },
+    { href: "/admin/settings", label: settingsLabel, icon: <Settings className="w-4 h-4" /> },
   ];
 
   return (

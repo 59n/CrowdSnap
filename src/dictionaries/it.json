@@ -10,9 +10,16 @@
     "noEventsYet": "Nessun evento ancora",
     "noEventsDesc": "Crea il tuo primo evento per generare i QR code.",
     "active": "Attivo",
-    "inactive": "Inattivo",
+    "inactive": "Disattivato",
     "uploads": "caricamenti",
-    "editDetails": "Modifica Dettagli"
+    "editDetails": "Modifica Dettagli",
+    "ended": "Terminato",
+    "archived": "Archiviato",
+    "endedArchived": "Ended / archived",
+    "allEvents": "Tutti",
+    "noEventsInFilter": "No events in this filter.",
+    "showAllEvents": "Show all events",
+    "guestsBlocked": "Guests blocked"
   },
   "createEvent": {
     "title": "Crea Nuovo Evento",
@@ -41,6 +48,7 @@
     "guestQrCode": "QR Code e Link per Ospiti",
     "guestQrDesc": "Gli ospiti possono scansionarlo o usare il link per caricare foto.",
     "directLink": "Link Diretto per Upload",
+    "originalUrl": "URL originale (sempre attivo)",
     "shareLink": "Condividi questo link o QR code. Nessuna app necessaria.",
     "files": "file",
     "total": "totali"
@@ -104,7 +112,14 @@
     "removeUpload": "Rimuovi",
     "confirmRemove": "Rimuovere questo file dall'evento?",
     "removedUpload": "Rimosso",
-    "failedRemove": "Rimozione fallita"
+    "failedRemove": "Rimozione fallita",
+    "eventEndedTitle": "Questo evento è terminato",
+    "eventEndedDesc": "Il periodo di caricamento è finito. Grazie per aver condiviso le foto!",
+    "eventDisabledTitle": "I caricamenti sono temporaneamente chiusi",
+    "eventDisabledDesc": "L'organizzatore ha messo in pausa i caricamenti. Riprova più tardi.",
+    "eventArchivedTitle": "Questo evento non è più disponibile",
+    "eventArchivedDesc": "Questo evento è stato archiviato e non accetta più caricamenti.",
+    "backHome": "Torna alla home"
   },
   "editEvent": {
     "title": "Modifica Evento",
@@ -114,6 +129,14 @@
     "saving": "Salvataggio...",
     "saveChanges": "Salva modifiche",
     "maxFileSize": "Dimensione max file (MB)",
+    "eventDate": "Data dell'evento",
+    "endDate": "Data di fine (opzionale)",
+    "slug": "URL personalizzato per gli ospiti",
+    "slugPlaceholder": "es. sara-e-giovanni",
+    "slugDesc": "Solo lettere, numeri e trattini. L'URL originale rimane sempre attivo.",
+    "slugTaken": "Questo URL è già utilizzato da un altro evento.",
+    "guestGallery": "Galleria ospiti",
+    "guestGalleryDesc": "Consenti agli ospiti di vedere ed eliminare i propri caricamenti.",
     "success": "Evento aggiornato con successo",
     "error": "Errore durante l'aggiornamento dell'evento"
   },
@@ -149,5 +172,10 @@
     "feature3Title": "Nessun Limite di Dimensioni",
     "feature3Desc": "Trasferisci file video giganti direttamente su disco senza sovraccaricare la memoria del server.",
     "footer": "Realizzato per i tuoi eventi privati."
+  },
+  "settings": {
+    "nav": "Impostazioni",
+    "title": "Impostazioni",
+    "subtitle": "Gestisci storage, auth e server senza modificare .env a mano."
   }
 }

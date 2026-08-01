@@ -3,10 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import prisma from '@/lib/db';
 import fs from 'fs';
-import path from 'path';
-import { resolveReadPath } from '@/lib/storage';
-
-const BASE_PATH = process.env.STORAGE_PATH || './storage';
+import { resolveReadPath, deleteUploadFiles } from '@/lib/storage';
 
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
@@ -66,18 +63,9 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
       return NextResponse.json({ error: 'Not found' }, { status: 404 });
     }
 
-    // Delete files from disk (primary + replica)
-    const originalPath = path.join(BASE_PATH, upload.relativePath);
-    const thumbPath = path.join(BASE_PATH, 'events', upload.eventId, 'thumbs', `${upload.id}.jpg`);
-    const metaPath = path.join(BASE_PATH, 'events', upload.eventId, 'metadata', `${upload.id}.json`);
+    // Remove files from Mac + SSD so sync cannot resurrect them
+    deleteUploadFiles(upload.eventId, upload.id, upload.storedName);
 
-    [originalPath, thumbPath, metaPath].forEach(p => {
-        if (fs.existsSync(p)) fs.unlinkSync(p);
-    });
-
-    // Replica is intentionally never deleted — it's a permanent archive
-
-    // Delete from DB
     await prisma.upload.delete({
         where: { id: id }
     });

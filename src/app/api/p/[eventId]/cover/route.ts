@@ -1,15 +1,15 @@
 import { NextResponse } from 'next/server';
 import fs from 'fs';
-import { getFilePath } from '@/lib/storage';
+import { resolveReadPath } from '@/lib/storage';
 
 export async function GET(request: Request, props: { params: Promise<{ eventId: string }> }) {
   const { eventId } = await props.params;
 
   try {
-    const coverPath = getFilePath(eventId, 'metadata', 'cover.bin');
-    const metaPath = getFilePath(eventId, 'metadata', 'cover_meta.json');
+    const coverPath = resolveReadPath(`events/${eventId}/metadata/cover.bin`);
+    const metaPath = resolveReadPath(`events/${eventId}/metadata/cover_meta.json`);
 
-    if (!fs.existsSync(coverPath) || !fs.existsSync(metaPath)) {
+    if (!coverPath || !metaPath) {
         return new NextResponse(null, { status: 404 });
     }
 
