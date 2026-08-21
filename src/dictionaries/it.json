@@ -143,7 +143,13 @@
     "guestGallery": "Galleria ospiti",
     "guestGalleryDesc": "Consenti agli ospiti di vedere ed eliminare i propri caricamenti.",
     "success": "Evento aggiornato con successo",
-    "error": "Errore durante l'aggiornamento dell'evento"
+    "error": "Errore durante l'aggiornamento dell'evento",
+    "heroBanner": "Hero background (optional)",
+    "heroBannerDesc": "Full-width image at the top of the guest page. Fades softly into the content. Wide landscape photos work best.",
+    "removeHeroBanner": "Remove current hero background",
+    "removeCoverIcon": "Remove current cover icon",
+    "endBeforeStart": "End date cannot be before the event date.",
+    "detailsSavedMediaFailed": "Details saved, but an image update failed. Try the cover/banner again."
   },
   "qrExport": {
     "style": "Stile",

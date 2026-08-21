@@ -23,6 +23,7 @@ interface StorageData {
     freeGB: number;
     usedGB: number;
     percentage: number;
+    capacityUnreliable?: boolean;
   } | null;
 }
 
@@ -299,11 +300,17 @@ export default function StorageWidget() {
             <p className="text-[10px] text-amber-600 font-medium">SSD not mounted</p>
           ) : (
             <>
-              {data.replica && (
+              {data.replica && !data.replica.capacityUnreliable && (
                 <div className="flex items-center justify-between text-muted-foreground/80">
                   <span>{data.replica.freeGB.toFixed(0)} GB free on SSD</span>
                   <span>{data.replica.totalGB.toFixed(0)} GB total</span>
                 </div>
+              )}
+              {data.replica?.capacityUnreliable && (
+                <p className="text-[10px] text-muted-foreground/70 leading-snug">
+                  SSD connected and writable. Free-space numbers are hidden — Docker Desktop
+                  cannot read external-drive capacity accurately (host still shows ~1 TB free).
+                </p>
               )}
 
               <div className="flex flex-col gap-0.5 text-muted-foreground/80">

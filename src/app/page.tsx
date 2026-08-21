@@ -1,9 +1,41 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Camera, Image as ImageIcon, Video, ShieldCheck } from "lucide-react";
 import { getDictionary, getLocale } from "@/lib/i18n";
+import { getSetting } from "@/lib/settings";
+import prisma from "@/lib/db";
+
+/**
+ * Resolve configured home redirect (event id or slug).
+ * Returns null if unset or event not found — avoids redirect loops.
+ */
+async function resolveHomeRedirectTarget(): Promise<string | null> {
+  const raw = (getSetting("HOME_REDIRECT_EVENT") || "").trim();
+  if (!raw || !/^[a-zA-Z0-9_-]{1,128}$/.test(raw)) return null;
+
+  let event = await prisma.event.findUnique({
+    where: { id: raw },
+    select: { id: true, slug: true },
+  });
+  if (!event) {
+    event = await prisma.event.findUnique({
+      where: { slug: raw },
+      select: { id: true, slug: true },
+    });
+  }
+  if (!event) return null;
+
+  // Prefer public slug when set so URLs stay short/pretty
+  return event.slug || event.id;
+}
 
 export default async function Home() {
+  const target = await resolveHomeRedirectTarget();
+  if (target) {
+    redirect(`/p/${target}`);
+  }
+
   const locale = await getLocale();
   const dict = await getDictionary(locale);
   const t = dict.home;
@@ -14,26 +46,26 @@ export default async function Home() {
           <div className="inline-flex items-center justify-center p-4 bg-primary/5 rounded-2xl mb-4">
             <Camera className="w-12 h-12 text-primary" />
           </div>
-          
+
           <h1 className="text-5xl md:text-6xl font-extrabold tracking-tight text-slate-900">
             {t.title1} <br />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-primary/60">
               {t.title2}
             </span>
           </h1>
-          
-          <p className="text-lg md:text-xl text-slate-600">
-            {t.subtitle}
-          </p>
+
+          <p className="text-lg md:text-xl text-slate-600">{t.subtitle}</p>
 
           <div className="pt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
             <Button size="lg" className="rounded-full shadow-lg" asChild>
-              <Link href="/admin">
-                {t.openDashboard}
-              </Link>
+              <Link href="/admin">{t.openDashboard}</Link>
             </Button>
             <Button size="lg" variant="outline" className="rounded-full bg-white" asChild>
-              <a href="https://github.com/59n/CrowdSnap" target="_blank" rel="noopener noreferrer">
+              <a
+                href="https://github.com/59n/CrowdSnap"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
                 {t.learnMore}
               </a>
             </Button>
@@ -64,7 +96,7 @@ export default async function Home() {
           </div>
         </div>
       </main>
-      
+
       <footer className="w-full border-t border-slate-200 bg-white py-8 text-center text-sm text-slate-500">
         <p>{t.footer}</p>
       </footer>

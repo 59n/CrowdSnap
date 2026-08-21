@@ -36,6 +36,8 @@ export interface AppSettings {
   ADMIN_PASSWORD: string;
   NEXTAUTH_URL: string;
   NEXTAUTH_SECRET: string;
+  /** Event id or slug — when set, `/` redirects guests there. Empty = marketing home. */
+  HOME_REDIRECT_EVENT: string;
   MAX_UPLOAD_MB: number;
   DATABASE_URL: string;
   POSTGRES_USER: string;
@@ -100,6 +102,16 @@ export const SETTING_FIELDS: SettingFieldMeta[] = [
     category: 'auth',
     type: 'string',
     placeholder: 'http://localhost:3000',
+  },
+  {
+    key: 'HOME_REDIRECT_EVENT',
+    label: 'Home page → event redirect',
+    description:
+      'If guests open the bare site URL (/), send them to this event. Use the event ID or custom slug. Leave empty for the default CrowdSnap home page. Admin (/admin) is never redirected.',
+    category: 'auth',
+    type: 'string',
+    optional: true,
+    placeholder: 'my-wedding or clxyz…',
   },
   {
     key: 'NEXTAUTH_SECRET',
@@ -189,6 +201,7 @@ const DEFAULTS: AppSettings = {
   ADMIN_PASSWORD: '',
   NEXTAUTH_URL: 'http://localhost:3000',
   NEXTAUTH_SECRET: '',
+  HOME_REDIRECT_EVENT: '',
   MAX_UPLOAD_MB: 100,
   DATABASE_URL: '',
   POSTGRES_USER: 'postgres',
@@ -224,6 +237,7 @@ export function settingsFromEnv(): AppSettings {
     ADMIN_PASSWORD: envString('ADMIN_PASSWORD', DEFAULTS.ADMIN_PASSWORD),
     NEXTAUTH_URL: envString('NEXTAUTH_URL', DEFAULTS.NEXTAUTH_URL),
     NEXTAUTH_SECRET: envString('NEXTAUTH_SECRET', DEFAULTS.NEXTAUTH_SECRET),
+    HOME_REDIRECT_EVENT: envString('HOME_REDIRECT_EVENT', DEFAULTS.HOME_REDIRECT_EVENT),
     MAX_UPLOAD_MB: envNumber('MAX_UPLOAD_MB', DEFAULTS.MAX_UPLOAD_MB),
     DATABASE_URL: envString('DATABASE_URL', DEFAULTS.DATABASE_URL),
     POSTGRES_USER: envString('POSTGRES_USER', DEFAULTS.POSTGRES_USER),
@@ -316,6 +330,16 @@ function normalizeIncoming(partial: Partial<AppSettings>, current: AppSettings):
     next.STORAGE_REPLICA_PATH = current.STORAGE_REPLICA_PATH || '';
   }
 
+  // Home redirect: only simple id/slug segments (no URLs or path tricks)
+  if (next.HOME_REDIRECT_EVENT) {
+    const ref = next.HOME_REDIRECT_EVENT.trim();
+    if (!/^[a-zA-Z0-9_-]{1,128}$/.test(ref)) {
+      next.HOME_REDIRECT_EVENT = current.HOME_REDIRECT_EVENT || '';
+    } else {
+      next.HOME_REDIRECT_EVENT = ref;
+    }
+  }
+
   return next;
 }
 
@@ -334,8 +358,26 @@ function writeSettingsFile(settings: AppSettings) {
 
 /**
  * Update or append keys in .env without wiping unrelated lines/comments.
+ * Best-effort: in Docker the image /app is root-owned, so .env.tmp may get EACCES.
+ * Runtime source of truth is data/settings.json (always writable via volume mount).
  */
 function writeEnvFile(settings: AppSettings) {
+  const valueFor = (key: string): string => {
+    const v = (settings as any)[key];
+    if (v === undefined || v === null) return '';
+    return String(v);
+  };
+
+  // Always keep this process's env in sync even if disk write fails
+  for (const field of SETTING_FIELDS) {
+    const val = valueFor(field.key);
+    if (val === '' && field.optional) {
+      delete process.env[field.key];
+    } else {
+      process.env[field.key] = val;
+    }
+  }
+
   let content = '';
   try {
     if (fs.existsSync(ENV_FILE)) content = fs.readFileSync(ENV_FILE, 'utf8');
@@ -347,12 +389,6 @@ function writeEnvFile(settings: AppSettings) {
   const lines = content.length ? content.split(/\r?\n/) : [];
   const seen = new Set<string>();
 
-  const valueFor = (key: string): string => {
-    const v = (settings as any)[key];
-    if (v === undefined || v === null) return '';
-    return String(v);
-  };
-
   const updated = lines.map((line) => {
     const m = line.match(/^([A-Za-z_][A-Za-z0-9_]*)=(.*)$/);
     if (!m) return line;
@@ -360,7 +396,6 @@ function writeEnvFile(settings: AppSettings) {
     if (!keys.includes(key)) return line;
     seen.add(key);
     const val = valueFor(key);
-    // Quote if contains spaces or special chars
     const needsQuote = /[\s#"']/.test(val);
     return `${key}=${needsQuote ? JSON.stringify(val) : val}`;
   });
@@ -373,22 +408,23 @@ function writeEnvFile(settings: AppSettings) {
     updated.push(`${key}=${needsQuote ? JSON.stringify(val) : val}`);
   }
 
-  // Ensure trailing newline
   let out = updated.join('\n');
   if (!out.endsWith('\n')) out += '\n';
 
-  const tmp = ENV_FILE + '.tmp';
-  fs.writeFileSync(tmp, out, 'utf8');
-  fs.renameSync(tmp, ENV_FILE);
-
-  // Keep process.env in sync for this process (best-effort)
-  for (const field of SETTING_FIELDS) {
-    const val = valueFor(field.key);
-    if (val === '' && field.optional) {
-      delete process.env[field.key];
-    } else {
-      process.env[field.key] = val;
+  try {
+    const tmp = ENV_FILE + '.tmp';
+    fs.writeFileSync(tmp, out, 'utf8');
+    fs.renameSync(tmp, ENV_FILE);
+  } catch (e) {
+    const err = e as NodeJS.ErrnoException;
+    if (err.code === 'EACCES' || err.code === 'EPERM' || err.code === 'EROFS') {
+      console.warn(
+        '[settings] Could not update .env on disk (read-only app dir — normal in Docker).',
+        'Settings saved to data/settings.json; apply .env on the host if needed for rebuilds.'
+      );
+      return;
     }
+    throw e;
   }
 }
 

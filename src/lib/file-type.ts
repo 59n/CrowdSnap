@@ -132,7 +132,8 @@ export function extForMime(mime: string): string {
 }
 
 export const MIN_MAX_FILE_MB = 1;
-export const MAX_MAX_FILE_MB = 200;
+/** Per-event / global upload cap. Self-hosted; allow large phone videos. */
+export const MAX_MAX_FILE_MB = 2048;
 
 /** Clamp event maxFileSizeMB to a safe range. */
 export function clampMaxFileSizeMB(value: unknown, fallback = 100): number {

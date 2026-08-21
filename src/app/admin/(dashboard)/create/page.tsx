@@ -13,6 +13,7 @@ import { Separator } from "@/components/ui/separator";
 import { ArrowLeft, CalendarDays, Globe, FileUp } from "lucide-react";
 import Link from "next/link";
 import { useTranslation } from "@/components/TranslationProvider";
+import { MAX_MAX_FILE_MB, MIN_MAX_FILE_MB } from "@/lib/file-type";
 
 export default function CreateEventPage() {
   const router = useRouter();
@@ -142,10 +143,15 @@ export default function CreateEventPage() {
                     <Input
                       id="maxSize"
                       type="number"
-                      min="1"
-                      max="2000"
+                      min={MIN_MAX_FILE_MB}
+                      max={MAX_MAX_FILE_MB}
                       value={formData.maxFileSizeMB}
-                      onChange={(e) => setFormData({ ...formData, maxFileSizeMB: parseInt(e.target.value) || 100 })}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          maxFileSizeMB: parseInt(e.target.value, 10) || 100,
+                        })
+                      }
                       required
                       className="h-9 pr-12"
                     />

@@ -1,3 +1,4 @@
+import fs from "fs";
 import prisma from '@/lib/db';
 import { notFound } from "next/navigation";
 import { format } from "date-fns";
@@ -13,6 +14,7 @@ import EditEventDialog from "./EditEventDialog";
 import EventActions from "./EventActions";
 import { getDictionary, getLocale } from "@/lib/i18n";
 import { expirePastEvents, getEventStatus, isEventOpenForGuests } from "@/lib/events";
+import { getFilePath } from "@/lib/storage";
 
 function statusBadgeClass(status: string) {
   switch (status) {
@@ -77,6 +79,16 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
 
   const status = getEventStatus(event);
   const guestsOpen = isEventOpenForGuests(event);
+  const coverPath = getFilePath(event.id, "metadata", "cover.bin");
+  const bannerPath = getFilePath(event.id, "metadata", "banner.bin");
+  const hasCoverImage = fs.existsSync(coverPath);
+  const hasBannerImage = fs.existsSync(bannerPath);
+  const coverCacheKey = hasCoverImage
+    ? Math.floor(fs.statSync(coverPath).mtimeMs)
+    : 0;
+  const bannerCacheKey = hasBannerImage
+    ? Math.floor(fs.statSync(bannerPath).mtimeMs)
+    : 0;
 
   const { getSetting } = await import('@/lib/settings');
   const baseUrl = getSetting('NEXTAUTH_URL') || process.env.NEXTAUTH_URL || '';
@@ -123,7 +135,13 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
         </div>
 
         <div className="flex flex-wrap items-center gap-2 ml-11 sm:ml-0 shrink-0">
-          <EditEventDialog event={event} />
+          <EditEventDialog
+            event={event}
+            hasCoverImage={hasCoverImage}
+            hasBannerImage={hasBannerImage}
+            coverCacheKey={coverCacheKey}
+            bannerCacheKey={bannerCacheKey}
+          />
           <Button variant="outline" size="sm" asChild disabled={!guestsOpen}>
             <Link href={event.slug ? `/p/${event.slug}` : `/p/${event.id}`} target="_blank">
               <ExternalLink className="w-3.5 h-3.5 mr-1.5" /> {t.guestView}

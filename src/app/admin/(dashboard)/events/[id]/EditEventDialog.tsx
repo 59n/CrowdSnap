@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -9,12 +9,33 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Settings } from "lucide-react";
 import { useTranslation } from "@/components/TranslationProvider";
+import { MAX_MAX_FILE_MB, MIN_MAX_FILE_MB } from "@/lib/file-type";
 
-const toDateInput = (d: Date | string | null | undefined) =>
-  d ? new Date(d).toISOString().split("T")[0] : "";
+/**
+ * Calendar day for <input type="date"> — use local Y/M/D, not toISOString()
+ * (UTC can shift the day for non-UTC timezones).
+ */
+function toDateInput(d: Date | string | null | undefined): string {
+  if (!d) return "";
+  const date = typeof d === "string" ? new Date(d) : d;
+  if (Number.isNaN(date.getTime())) return "";
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+/** YYYY-MM-DD → stable noon UTC so the calendar day is unambiguous. */
+function dateInputToApi(dateStr: string): string {
+  return `${dateStr}T12:00:00.000Z`;
+}
 
 export default function EditEventDialog({
-  event
+  event,
+  hasBannerImage = false,
+  hasCoverImage = false,
+  coverCacheKey = 0,
+  bannerCacheKey = 0,
 }: {
   event: {
     id: string;
@@ -26,12 +47,21 @@ export default function EditEventDialog({
     language: string;
     maxFileSizeMB: number;
     guestGalleryEnabled?: boolean;
-  }
+  };
+  hasBannerImage?: boolean;
+  hasCoverImage?: boolean;
+  coverCacheKey?: number;
+  bannerCacheKey?: number;
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [coverFile, setCoverFile] = useState<File | null>(null);
+  const [coverPreview, setCoverPreview] = useState<string | null>(null);
+  const [removeCover, setRemoveCover] = useState(false);
+  const [bannerFile, setBannerFile] = useState<File | null>(null);
+  const [bannerPreview, setBannerPreview] = useState<string | null>(null);
+  const [removeBanner, setRemoveBanner] = useState(false);
   const [formData, setFormData] = useState({
     name: event.name,
     description: event.description || "",
@@ -44,39 +74,135 @@ export default function EditEventDialog({
   });
   const { t } = useTranslation();
 
+  // Re-sync form when opening dialog / server props refresh
+  useEffect(() => {
+    if (!open) return;
+    setFormData({
+      name: event.name,
+      description: event.description || "",
+      date: toDateInput(event.date),
+      endDate: toDateInput(event.endDate),
+      slug: event.slug || "",
+      language: event.language,
+      maxFileSizeMB: event.maxFileSizeMB,
+      guestGalleryEnabled: event.guestGalleryEnabled ?? true,
+    });
+    setCoverFile(null);
+    setBannerFile(null);
+    setRemoveCover(false);
+    setRemoveBanner(false);
+  }, [open, event]);
+
+  useEffect(() => {
+    if (!bannerFile) {
+      setBannerPreview(null);
+      return;
+    }
+    const url = URL.createObjectURL(bannerFile);
+    setBannerPreview(url);
+    return () => URL.revokeObjectURL(url);
+  }, [bannerFile]);
+
+  useEffect(() => {
+    if (!coverFile) {
+      setCoverPreview(null);
+      return;
+    }
+    const url = URL.createObjectURL(coverFile);
+    setCoverPreview(url);
+    return () => URL.revokeObjectURL(url);
+  }, [coverFile]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
+      if (formData.endDate && formData.date && formData.endDate < formData.date) {
+        toast.error(
+          t("editEvent.endBeforeStart") || "End date cannot be before the event date."
+        );
+        return;
+      }
+
+      const payload = {
+        ...formData,
+        date: formData.date ? dateInputToApi(formData.date) : formData.date,
+        endDate: formData.endDate ? dateInputToApi(formData.endDate) : formData.endDate,
+      };
+
       const res = await fetch(`/api/admin/events/${event.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(payload),
       });
 
+      const data = await res.json().catch(() => ({}));
       if (res.status === 409) {
         toast.error(t("editEvent.slugTaken"));
         return;
       }
-      if (!res.ok) throw new Error("Failed to update event");
+      if (!res.ok) {
+        throw new Error(data.error || t("editEvent.error"));
+      }
 
-      if (coverFile) {
+      // Media is optional — details already saved; don't fail the whole save as “error”
+      const mediaErrors: string[] = [];
+
+      if (removeCover && !coverFile) {
+        const del = await fetch(`/api/admin/events/${event.id}/cover`, {
+          method: "DELETE",
+        });
+        if (!del.ok) mediaErrors.push("cover remove");
+      } else if (coverFile) {
         const fd = new FormData();
         fd.append("file", coverFile);
         const coverRes = await fetch(`/api/admin/events/${event.id}/cover`, {
           method: "POST",
           body: fd,
         });
-        if (!coverRes.ok) throw new Error("Failed to upload cover image");
+        if (!coverRes.ok) mediaErrors.push("cover upload");
       }
 
-      toast.success(t("editEvent.success"));
+      if (removeBanner && !bannerFile) {
+        const del = await fetch(`/api/admin/events/${event.id}/banner`, {
+          method: "DELETE",
+        });
+        if (!del.ok) mediaErrors.push("banner remove");
+      } else if (bannerFile) {
+        const fd = new FormData();
+        fd.append("file", bannerFile);
+        const bannerRes = await fetch(`/api/admin/events/${event.id}/banner`, {
+          method: "POST",
+          body: fd,
+        });
+        if (!bannerRes.ok) mediaErrors.push("banner upload");
+      }
+
+      if (mediaErrors.length) {
+        toast.warning(
+          t("editEvent.detailsSavedMediaFailed") ||
+            `Details saved, but image update failed (${mediaErrors.join(", ")}). Try the image again.`
+        );
+      } else {
+        toast.success(t("editEvent.success"));
+      }
+
       setOpen(false);
       setCoverFile(null);
+      setBannerFile(null);
+      setRemoveCover(false);
+      setRemoveBanner(false);
+
+      const mediaChanged =
+        !!coverFile || !!bannerFile || removeCover || removeBanner;
       router.refresh();
-    } catch {
-      toast.error(t("editEvent.error"));
+      if (mediaChanged) {
+        // Bust cached cover/banner URLs in the browser
+        window.location.reload();
+      }
+    } catch (err) {
+      toast.error((err as Error).message || t("editEvent.error"));
     } finally {
       setLoading(false);
     }
@@ -167,11 +293,20 @@ export default function EditEventDialog({
             <Input
               id="edit-maxFileSizeMB"
               type="number"
-              min="1"
+              min={MIN_MAX_FILE_MB}
+              max={MAX_MAX_FILE_MB}
               value={formData.maxFileSizeMB}
-              onChange={(e) => setFormData({ ...formData, maxFileSizeMB: parseInt(e.target.value) || 100 })}
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  maxFileSizeMB: parseInt(e.target.value, 10) || 100,
+                })
+              }
               required
             />
+            <p className="text-xs text-muted-foreground">
+              {MIN_MAX_FILE_MB}–{MAX_MAX_FILE_MB} MB per file (videos often need 500–1000+)
+            </p>
           </div>
 
           {/* Custom slug */}
@@ -206,16 +341,90 @@ export default function EditEventDialog({
             />
           </div>
 
-          {/* Cover image */}
+          {/* Cover image (circular avatar) */}
           <div className="space-y-2">
             <Label htmlFor="edit-cover">{t("editEvent.customCoverIcon")}</Label>
             <Input
               id="edit-cover"
               type="file"
               accept="image/*"
-              onChange={(e) => setCoverFile(e.target.files?.[0] || null)}
+              disabled={removeCover}
+              onChange={(e) => {
+                setCoverFile(e.target.files?.[0] || null);
+                if (e.target.files?.[0]) setRemoveCover(false);
+              }}
             />
             <p className="text-xs text-muted-foreground">{t("editEvent.customCoverIconDesc")}</p>
+            {hasCoverImage && (
+              <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer pt-0.5">
+                <input
+                  type="checkbox"
+                  checked={removeCover}
+                  onChange={(e) => {
+                    setRemoveCover(e.target.checked);
+                    if (e.target.checked) setCoverFile(null);
+                  }}
+                  className="h-3.5 w-3.5 rounded border-input accent-destructive"
+                />
+                {t("editEvent.removeCoverIcon")}
+              </label>
+            )}
+            {(hasCoverImage || coverPreview) && !removeCover && (
+              <div className="w-16 h-16 rounded-full overflow-hidden border border-border bg-muted">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={
+                    coverPreview ||
+                    `/api/p/${event.id}/cover?v=${coverCacheKey}`
+                  }
+                  alt=""
+                  className="w-full h-full object-cover"
+                />
+              </div>
+            )}
+          </div>
+
+          {/* Full-width hero banner behind cover */}
+          <div className="space-y-2">
+            <Label htmlFor="edit-banner">{t("editEvent.heroBanner")}</Label>
+            <Input
+              id="edit-banner"
+              type="file"
+              accept="image/*"
+              disabled={removeBanner}
+              onChange={(e) => {
+                setBannerFile(e.target.files?.[0] || null);
+                if (e.target.files?.[0]) setRemoveBanner(false);
+              }}
+            />
+            <p className="text-xs text-muted-foreground">{t("editEvent.heroBannerDesc")}</p>
+            {hasBannerImage && (
+              <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer pt-0.5">
+                <input
+                  type="checkbox"
+                  checked={removeBanner}
+                  onChange={(e) => {
+                    setRemoveBanner(e.target.checked);
+                    if (e.target.checked) setBannerFile(null);
+                  }}
+                  className="h-3.5 w-3.5 rounded border-input accent-destructive"
+                />
+                {t("editEvent.removeHeroBanner")}
+              </label>
+            )}
+            {(hasBannerImage || bannerPreview) && !removeBanner && (
+              <div className="rounded-md overflow-hidden border border-border/60 h-20 bg-muted">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={
+                    bannerPreview ||
+                    `/api/p/${event.id}/banner?v=${bannerCacheKey}`
+                  }
+                  alt=""
+                  className="w-full h-full object-cover"
+                />
+              </div>
+            )}
           </div>
 
           <div className="flex justify-end pt-4">

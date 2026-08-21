@@ -3,8 +3,8 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import {
   Trash2, Download, Image as ImageIcon, Film, X,
-  ChevronLeft, ChevronRight, Wifi, AlertTriangle,
-  LayoutGrid, List, Users, Clock,
+  ChevronLeft, ChevronRight, Wifi,
+  LayoutGrid, List, Users, Clock, ShieldAlert, ChevronDown, ChevronUp,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTranslation } from "@/components/TranslationProvider";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { TripleConfirmDialog } from "@/components/TripleConfirmDialog";
 import { formatDistanceToNow, format } from "date-fns";
 
 const POLL_INTERVAL = 20_000;
@@ -50,9 +51,8 @@ export default function UploadGrid({
   const [isLive, setIsLive] = useState(true);
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
   const [confirmDeleteAll, setConfirmDeleteAll] = useState(false);
-  const [deleteAllPassword, setDeleteAllPassword] = useState("");
   const [deleteAllPasswordError, setDeleteAllPasswordError] = useState(false);
-  const [deleteAllStep, setDeleteAllStep] = useState(1);
+  const [showDangerZone, setShowDangerZone] = useState(false);
   const [nextCursor, setNextCursor] = useState<string | null>(
     initialUploads.length > 0 ? initialUploads[initialUploads.length - 1]?.id ?? null : null
   );
@@ -249,18 +249,27 @@ export default function UploadGrid({
     }
   };
 
-  const handleDeleteAll = async () => {
+  const handleDeleteAll = async (password: string) => {
+    if (!password.trim()) {
+      toast.error("Enter your admin password");
+      return;
+    }
     setDeleteAllPasswordError(false);
     setIsDeletingAll(true);
     try {
       const res = await fetch(`/api/admin/events/${eventId}/uploads`, {
         method: "DELETE",
-        headers: { "x-confirm-password": deleteAllPassword },
+        headers: { "x-confirm-password": password },
       });
-      if (res.status === 403) { setDeleteAllPasswordError(true); setIsDeletingAll(false); return; }
+      if (res.status === 403) {
+        setDeleteAllPasswordError(true);
+        setIsDeletingAll(false);
+        return;
+      }
       if (!res.ok) throw new Error();
       setUploads([]);
       setConfirmDeleteAll(false);
+      setShowDangerZone(false);
       toast.success(t("uploadGrid.allUploadsDeleted"));
       window.location.reload();
     } catch {
@@ -270,7 +279,8 @@ export default function UploadGrid({
   };
 
   const openDeleteAllModal = () => {
-    setDeleteAllPassword(""); setDeleteAllPasswordError(false); setDeleteAllStep(1); setConfirmDeleteAll(true);
+    setDeleteAllPasswordError(false);
+    setConfirmDeleteAll(true);
   };
 
   const formatSize = (bytes: number) =>
@@ -383,9 +393,40 @@ export default function UploadGrid({
             )}
 
             <span className="w-px h-4 bg-border shrink-0" />
-            <Button variant="destructive" size="sm" onClick={openDeleteAllModal} disabled={isDeletingAll} className="rounded-full flex-shrink-0 h-7 text-xs px-3">
-              <Trash2 className="w-3 h-3 mr-1.5" /> {isDeletingAll ? t("uploadGrid.deleting") : t("uploadGrid.deleteAll")}
-            </Button>
+            {!showDangerZone ? (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowDangerZone(true)}
+                className="rounded-full flex-shrink-0 h-7 text-xs px-3 text-muted-foreground"
+              >
+                <ShieldAlert className="w-3 h-3 mr-1.5" />
+                Danger zone
+                <ChevronDown className="w-3 h-3 ml-1 opacity-60" />
+              </Button>
+            ) : (
+              <>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={openDeleteAllModal}
+                  disabled={isDeletingAll || uploads.length === 0}
+                  className="rounded-full flex-shrink-0 h-7 text-xs px-3"
+                >
+                  <Trash2 className="w-3 h-3 mr-1.5" />
+                  {isDeletingAll ? t("uploadGrid.deleting") : t("uploadGrid.deleteAll")}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowDangerZone(false)}
+                  className="rounded-full flex-shrink-0 h-7 text-xs px-2 text-muted-foreground"
+                >
+                  Hide
+                  <ChevronUp className="w-3 h-3 ml-0.5 opacity-60" />
+                </Button>
+              </>
+            )}
           </div>
 
           {/* Right: live + view toggle + sort */}
@@ -657,60 +698,27 @@ export default function UploadGrid({
         onConfirm={() => { if (deleteTarget) handleDelete(deleteTarget.id); }}
       />
 
-      <ConfirmDialog
+      <TripleConfirmDialog
         open={confirmDeleteAll}
-        onOpenChange={open => { if (!open && !isDeletingAll) setConfirmDeleteAll(false); }}
-        title={t("uploadGrid.deleteAll")}
-        confirmLabel={deleteAllStep < 3 ? "Next →" : t("uploadGrid.deleteAll")}
-        cancelLabel={t("createEvent.cancel")}
-        isLoading={isDeletingAll}
-        onConfirm={() => {
-          if (deleteAllStep < 3) setDeleteAllStep(s => s + 1);
-          else handleDeleteAll();
+        onOpenChange={(open) => {
+          if (!open && !isDeletingAll) {
+            setConfirmDeleteAll(false);
+            setDeleteAllPasswordError(false);
+          }
         }}
-      >
-        <div className="space-y-3">
-          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            {[1, 2, 3].map(s => (
-              <span key={s} className={`h-1.5 flex-1 rounded-full transition-colors ${s <= deleteAllStep ? "bg-destructive" : "bg-muted"}`} />
-            ))}
-            <span className="ml-1 text-muted-foreground/70">Step {deleteAllStep} of 3</span>
-          </div>
-          {deleteAllStep === 1 && (
-            <div className="flex items-start gap-3 rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
-              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-              <span>{t("uploadGrid.confirmDeleteAll1", { count: uploads.length })}</span>
-            </div>
-          )}
-          {deleteAllStep === 2 && (
-            <div className="flex items-start gap-3 rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive font-medium">
-              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-              <span>{t("uploadGrid.confirmDeleteAll2", { count: uploads.length })}</span>
-            </div>
-          )}
-          {deleteAllStep === 3 && (
-            <div className="space-y-3">
-              <div className="flex items-start gap-3 rounded-lg border border-destructive/50 bg-destructive/15 p-3 text-sm text-destructive font-semibold">
-                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-                <span>{t("uploadGrid.confirmDeleteAll3")}</span>
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-xs font-medium text-foreground">Enter admin password to confirm</label>
-                <input
-                  type="password"
-                  value={deleteAllPassword}
-                  onChange={e => { setDeleteAllPassword(e.target.value); setDeleteAllPasswordError(false); }}
-                  placeholder="Admin password"
-                  className={`w-full rounded-md border px-3 py-2 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-destructive/50 ${deleteAllPasswordError ? "border-destructive" : "border-border"}`}
-                  onKeyDown={e => { if (e.key === "Enter") handleDeleteAll(); }}
-                  autoFocus
-                />
-                {deleteAllPasswordError && <p className="text-xs text-destructive">Incorrect password.</p>}
-              </div>
-            </div>
-          )}
-        </div>
-      </ConfirmDialog>
+        title={t("uploadGrid.deleteAll")}
+        confirmLabel={t("uploadGrid.deleteAll")}
+        requirePassword
+        isLoading={isDeletingAll}
+        passwordError={deleteAllPasswordError}
+        onPasswordChange={() => setDeleteAllPasswordError(false)}
+        steps={[
+          { message: t("uploadGrid.confirmDeleteAll1", { count: uploads.length }) },
+          { message: t("uploadGrid.confirmDeleteAll2", { count: uploads.length }) },
+          { message: t("uploadGrid.confirmDeleteAll3"), strong: true },
+        ]}
+        onConfirm={handleDeleteAll}
+      />
 
       {/* ── Lightbox ──────────────────────────────────── */}
       <AnimatePresence>

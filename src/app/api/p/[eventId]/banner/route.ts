@@ -5,6 +5,7 @@ import prisma from '@/lib/db';
 import { resolveReadPath, isSafeEventId } from '@/lib/storage';
 import { expirePastEvents } from '@/lib/events';
 
+/** Public full-width hero banner for the guest event page. */
 export async function GET(
   request: Request,
   props: { params: Promise<{ eventId: string }> }
@@ -17,28 +18,24 @@ export async function GET(
   try {
     await expirePastEvents();
     const event = await prisma.event.findUnique({ where: { id: eventId } });
-    // Cover is cosmetic; allow if event exists (closed page may show grayscale cover).
     if (!event) {
       return new NextResponse(null, { status: 404 });
     }
 
-    const coverPath = resolveReadPath(`events/${eventId}/metadata/cover.bin`);
-    const metaPath = resolveReadPath(`events/${eventId}/metadata/cover_meta.json`);
+    const bannerPath = resolveReadPath(`events/${eventId}/metadata/banner.bin`);
+    const metaPath = resolveReadPath(`events/${eventId}/metadata/banner_meta.json`);
 
-    if (!coverPath || !metaPath) {
+    if (!bannerPath || !metaPath) {
       return new NextResponse(null, {
         status: 404,
-        headers: {
-          'Cache-Control': 'no-store',
-        },
+        headers: { 'Cache-Control': 'no-store' },
       });
     }
 
     const { mimeType } = JSON.parse(fs.readFileSync(metaPath, 'utf8'));
-    const stat = fs.statSync(coverPath);
-    const etag = `"c-${stat.mtimeMs.toFixed(0)}-${stat.size}"`;
+    const stat = fs.statSync(bannerPath);
+    const etag = `"b-${stat.mtimeMs.toFixed(0)}-${stat.size}"`;
 
-    // Revalidate when cover is replaced (same URL path)
     if (request.headers.get('if-none-match') === etag) {
       return new NextResponse(null, {
         status: 304,
@@ -49,7 +46,7 @@ export async function GET(
       });
     }
 
-    const nodeStream = fs.createReadStream(coverPath);
+    const nodeStream = fs.createReadStream(bannerPath);
     const webStream = Readable.toWeb(nodeStream);
 
     return new NextResponse(webStream as unknown as BodyInit, {

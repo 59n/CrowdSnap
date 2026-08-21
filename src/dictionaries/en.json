@@ -134,8 +134,12 @@
   "editEvent": {
     "title": "Edit Event",
     "desc": "Make changes to your event details here. Click save when you're done.",
-    "customCoverIcon": "Custom Cover Icon (Optional)",
-    "customCoverIconDesc": "Overrides the default camera icon on the guest view.",
+    "customCoverIcon": "Cover icon (optional)",
+    "customCoverIconDesc": "Small circular photo above the event name on the guest page.",
+    "removeCoverIcon": "Remove current cover icon",
+    "heroBanner": "Hero background (optional)",
+    "heroBannerDesc": "Full-width image at the top of the guest page. Fades softly into the content. Wide landscape photos work best.",
+    "removeHeroBanner": "Remove current hero background",
     "saving": "Saving...",
     "saveChanges": "Save changes",
     "maxFileSize": "Max File Size (MB)",
@@ -148,7 +152,9 @@
     "guestGallery": "Guest Gallery",
     "guestGalleryDesc": "Allow guests to see and delete their own uploads.",
     "success": "Event updated successfully",
-    "error": "Error updating event"
+    "error": "Error updating event",
+    "endBeforeStart": "End date cannot be before the event date.",
+    "detailsSavedMediaFailed": "Details saved, but an image update failed. Try the cover/banner again."
   },
   "qrExport": {
     "style": "Style",

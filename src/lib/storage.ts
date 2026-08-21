@@ -157,14 +157,20 @@ export function deleteUploadFiles(eventId: string, uploadId: string, storedName:
 
 /**
  * Returns whether the replica path is reachable (SSD mounted and writable).
+ * Does NOT create parent volume roots (e.g. /Volumes/1TB) — that would fake
+ * a "mounted" SSD inside Docker when the host volume is not bind-mounted.
  */
 export function isReplicaAvailable(): boolean {
-  if (!getReplicaPath()) return false;
+  const rep = getReplicaPath();
+  if (!rep) return false;
   try {
-    if (!fs.existsSync(getReplicaPath()!)) {
-      fs.mkdirSync(getReplicaPath()!, { recursive: true });
+    if (!fs.existsSync(rep)) {
+      const parent = path.dirname(rep);
+      // Volume not present (SSD unplugged or not mounted into container)
+      if (!parent || parent === rep || !fs.existsSync(parent)) return false;
+      fs.mkdirSync(rep, { recursive: true });
     }
-    fs.accessSync(getReplicaPath()!, fs.constants.W_OK);
+    fs.accessSync(rep, fs.constants.W_OK);
     return true;
   } catch {
     return false;
@@ -261,9 +267,68 @@ const DISK_STATS_TTL_MS = 30_000;
 const diskStatsCache = new Map<string, { at: number; stats: DiskStats }>();
 
 /**
+ * Docker Desktop (virtiofs / osxfs) often reports bsize=1MiB while `blocks` are
+ * still counted in 4KiB units — so blocks*bsize is ~256× too large.
+ * Prefer a fundamental block size when bsize looks like a transfer size.
+ */
+function fundamentalBlockSize(stat: { bsize: number; blocks: number }): number {
+  const bsize = stat.bsize || 4096;
+  if (bsize <= 64 * 1024) return bsize;
+  // Transfer-size bsize: pick 4KiB if it yields a sane disk size (1GB–64TB)
+  const as4k = stat.blocks * 4096;
+  if (as4k >= 1e9 && as4k <= 64 * 1024 ** 4) return 4096;
+  // Last resort: 512-byte sectors
+  const as512 = stat.blocks * 512;
+  if (as512 >= 1e9 && as512 <= 64 * 1024 ** 4) return 512;
+  return bsize;
+}
+
+/**
+ * `df -kP` is the most reliable size source inside Docker Desktop bind mounts.
+ */
+function getDfDiskStats(dirPath: string): DiskStats | null {
+  try {
+    const out = execFileSync('df', ['-k', '-P', dirPath], {
+      encoding: 'utf8',
+      timeout: 5_000,
+    }).trim();
+    const lines = out.split('\n').filter(Boolean);
+    if (lines.length < 2) return null;
+    // -P: one line, columns: Filesystem 1024-blocks Used Available Capacity Mounted on
+    const parts = lines[lines.length - 1].split(/\s+/);
+    if (parts.length < 6) return null;
+    const totalKB = parseInt(parts[1], 10);
+    const availKB = parseInt(parts[3], 10);
+    if (!Number.isFinite(totalKB) || totalKB <= 0 || !Number.isFinite(availKB)) return null;
+    const totalGB = (totalKB * 1024) / GB;
+    const freeGB = (availKB * 1024) / GB;
+    const usedGB = Math.max(0, totalGB - freeGB);
+    const percentage = totalGB > 0 ? (usedGB / totalGB) * 100 : 0;
+    return { totalGB, freeGB, usedGB, percentage, matchesSystemSettings: false };
+  } catch {
+    return null;
+  }
+}
+
+function getStatfsDiskStats(dirPath: string): DiskStats | null {
+  try {
+    const stat = fs.statfsSync(dirPath);
+    const blockSize = fundamentalBlockSize(stat);
+    const totalGB = (stat.blocks * blockSize) / GB;
+    const freeGB = (stat.bavail * blockSize) / GB;
+    const usedGB = Math.max(0, totalGB - freeGB);
+    const percentage = totalGB > 0 ? (usedGB / totalGB) * 100 : 0;
+    return { totalGB, freeGB, usedGB, percentage, matchesSystemSettings: false };
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Filesystem stats for the volume that hosts `dirPath`.
- * On macOS, matches System Settings free space (includes purgeable APFS space).
- * Elsewhere falls back to Node statfs. Results are cached ~30s.
+ * On macOS (host process), matches System Settings free space when possible.
+ * In Docker Desktop, prefers `df` then sanitized statfs (virtiofs bsize lies).
+ * Results are cached ~30s.
  */
 export function getDiskStats(dirPath: string): DiskStats | null {
   try {
@@ -271,7 +336,8 @@ export function getDiskStats(dirPath: string): DiskStats | null {
     const cached = diskStatsCache.get(key);
     if (cached && Date.now() - cached.at < DISK_STATS_TTL_MS) return cached.stats;
 
-    // Ensure path exists so we target the right volume
+    // Ensure path exists so we target the right volume (primary only — callers
+    // should not call this for an unmounted replica).
     if (!fs.existsSync(dirPath)) {
       fs.mkdirSync(dirPath, { recursive: true });
     }
@@ -280,15 +346,15 @@ export function getDiskStats(dirPath: string): DiskStats | null {
     if (process.platform === 'darwin') {
       stats = getMacDiskStats(dirPath);
     }
+    // Inside Linux containers (Docker Desktop on Mac), Swift helper is N/A;
+    // df matches what `df -h` shows for the bind-mounted host volume.
     if (!stats) {
-      const stat = fs.statfsSync(dirPath);
-      const blockSize = stat.bsize || 4096;
-      const totalGB = (stat.blocks * blockSize) / GB;
-      const freeGB = (stat.bavail * blockSize) / GB;
-      const usedGB = Math.max(0, totalGB - freeGB);
-      const percentage = totalGB > 0 ? (usedGB / totalGB) * 100 : 0;
-      stats = { totalGB, freeGB, usedGB, percentage, matchesSystemSettings: false };
+      stats = getDfDiskStats(dirPath);
     }
+    if (!stats) {
+      stats = getStatfsDiskStats(dirPath);
+    }
+    if (!stats) return null;
     diskStatsCache.set(key, { at: Date.now(), stats });
     return stats;
   } catch {

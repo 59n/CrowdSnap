@@ -28,12 +28,23 @@ export async function GET() {
       freeGB: number;
       usedGB: number;
       percentage: number;
+      /** Docker Desktop often reports the Mac data volume for /Volumes/* bind mounts */
+      capacityUnreliable?: boolean;
     } | null = null;
 
     const replicaPath = getReplicaPath();
     if (replicaPath && replicaReady) {
       const rStats = getDiskStats(replicaPath);
-      if (rStats) replica = rStats;
+      if (rStats) {
+        // virtiofs bug: external SSD stats often clone the primary Mac volume numbers
+        const looksSameVolume =
+          Math.abs(rStats.totalGB - stats.totalGB) < 1 &&
+          Math.abs(rStats.freeGB - stats.freeGB) < 2;
+        replica = {
+          ...rStats,
+          capacityUnreliable: looksSameVolume,
+        };
+      }
     }
 
     return NextResponse.json({
