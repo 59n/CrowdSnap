@@ -129,7 +129,11 @@
     "slowConnection": "Deine Verbindung wirkt langsam. Dateien werden noch hochgeladen — lass diese Seite offen.",
     "preparing": "Dateien werden für einen schnelleren Upload vorbereitet…",
     "failedSome": "{count} nicht hochgeladen. Sie stehen unten — tippe auf Hochladen, um es erneut zu versuchen.",
-    "failedConnection": "Server nicht erreichbar. Prüfe deine mobilen Daten und tippe dann auf Hochladen."
+    "failedConnection": "Server nicht erreichbar. Prüfe deine mobilen Daten und tippe dann auf Hochladen.",
+    "uploadNow": "Jetzt {count} Fotos hochladen",
+    "keepScreenOpen": "Bitte diesen Bildschirm während des Uploads geöffnet lassen...",
+    "inAppBrowserWarning": "In-App-Browser erkannt. Falls der Foto-Upload nicht klappt, tippe auf ⋯ oder Teilen und wähle \"In Safari öffnen\" oder \"In Chrome öffnen\".",
+    "inAppDismiss": "Ausblenden"
   },
   "editEvent": {
     "title": "Event bearbeiten",

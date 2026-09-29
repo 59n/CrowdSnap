@@ -2,6 +2,7 @@ import UploadZone from "@/components/UploadZone";
 import GuestGallery from "@/components/GuestGallery";
 import GuestEventClosed from "@/components/GuestEventClosed";
 import GuestHeroBanner, { GuestHeroIntroProvider } from "@/components/GuestHeroBanner";
+import InAppBrowserBanner from "@/components/InAppBrowserBanner";
 import { redirect } from "next/navigation";
 import { loadGuestShell } from "@/lib/guest-shell";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
@@ -72,9 +73,13 @@ export default async function GuestEventPage({ params }: PageProps) {
       cookieName={cookieName}
     >
       <GuestHeroIntroProvider enabled={hasBannerImage}>
-      <div className="relative min-h-screen bg-background flex flex-col overflow-x-hidden">
+      <div className="relative min-h-screen flex flex-col bg-background selection:bg-primary/20">
+        {/* Full-width hero banner with smooth scroll fade */}
         {hasBannerImage ? (
-          <GuestHeroBanner eventId={event.id} cacheKey={bannerCacheKey} />
+          <GuestHeroBanner
+            eventId={event.id}
+            cacheKey={bannerCacheKey}
+          />
         ) : (
           <>
             {/* Subtle gradient blobs when no banner */}
@@ -129,6 +134,9 @@ export default async function GuestEventPage({ params }: PageProps) {
               {event.endDate && ` – ${format(new Date(event.endDate), "MMMM d, yyyy")}`}
             </p>
           </div>
+
+          {/* In-app browser warning banner (Instagram, FB, TikTok, etc.) */}
+          <InAppBrowserBanner />
 
           {/* Upload zone */}
           <UploadZone eventId={event.id} />

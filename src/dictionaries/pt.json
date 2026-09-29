@@ -129,7 +129,11 @@
     "slowConnection": "A ligação parece lenta. Os ficheiros ainda estão a ser enviados — mantenha esta página aberta.",
     "preparing": "A preparar os ficheiros para um envio mais rápido…",
     "failedSome": "{count} não foram enviadas. Continuam na lista — toque em Enviar para tentar de novo.",
-    "failedConnection": "Não foi possível contactar o servidor. Verifique os dados móveis e toque em Enviar."
+    "failedConnection": "Não foi possível contactar o servidor. Verifique os dados móveis e toque em Enviar.",
+    "uploadNow": "Enviar {count} fotos agora",
+    "keepScreenOpen": "Por favor, mantenha esta tela aberta durante o envio...",
+    "inAppBrowserWarning": "Navegador interno detectado. Se a seleção de fotos falhar, toque em ⋯ ou Compartilhar e escolha \"Abrir no Safari\" ou \"Abrir no Chrome\".",
+    "inAppDismiss": "Fechar"
   },
   "editEvent": {
     "title": "Editar Evento",

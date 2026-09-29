@@ -129,7 +129,11 @@
     "slowConnection": "La connessione sembra lenta. I file si stanno ancora caricando — tieni aperta questa pagina.",
     "preparing": "Preparazione dei file per un invio più veloce…",
     "failedSome": "{count} non caricate. Restano nell'elenco — tocca Carica per riprovare.",
-    "failedConnection": "Server non raggiungibile. Controlla i dati mobili, poi tocca Carica."
+    "failedConnection": "Server non raggiungibile. Controlla i dati mobili, poi tocca Carica.",
+    "uploadNow": "Carica {count} foto adesso",
+    "keepScreenOpen": "Ti preghiamo di tenere aperto questo schermo durante il caricamento...",
+    "inAppBrowserWarning": "Browser in-app rilevato. Se la selezione di foto fallisce, tocca ⋯ o Condividi e scegli \"Apri in Safari\" o \"Apri in Chrome\".",
+    "inAppDismiss": "Chiudi"
   },
   "editEvent": {
     "title": "Modifica Evento",

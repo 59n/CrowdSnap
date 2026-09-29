@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useCallback, useState, useEffect, useRef } from "react";
-import { UploadCloud, CheckCircle2, AlertCircle, X, Image as ImageIcon, Film, Plus } from "lucide-react";
+import { UploadCloud, CheckCircle2, AlertCircle, X, Image as ImageIcon, Film, Plus, Smartphone } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "./ui/button";
 import { Progress } from "./ui/progress";
@@ -274,6 +274,54 @@ export default function UploadZone({ eventId }: UploadZoneProps) {
   const [slowConnection, setSlowConnection] = useState(false);
   const [failedNotice, setFailedNotice] = useState<string | null>(null);
 
+  // Prevent mobile screen sleep during upload (iOS 16.4+ & Android Chrome)
+  const wakeLockRef = useRef<any>(null);
+
+  const requestWakeLock = useCallback(async () => {
+    try {
+      if (typeof navigator !== "undefined" && "wakeLock" in navigator && !wakeLockRef.current) {
+        wakeLockRef.current = await (navigator as any).wakeLock.request("screen");
+        wakeLockRef.current.addEventListener("release", () => {
+          wakeLockRef.current = null;
+        });
+      }
+    } catch {
+      // Screen WakeLock may fail if low battery or tab is backgrounded
+    }
+  }, []);
+
+  const releaseWakeLock = useCallback(() => {
+    try {
+      if (wakeLockRef.current) {
+        wakeLockRef.current.release().catch(() => {});
+        wakeLockRef.current = null;
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  useEffect(() => {
+    if (uploading) {
+      requestWakeLock();
+    } else {
+      releaseWakeLock();
+    }
+  }, [uploading, requestWakeLock, releaseWakeLock]);
+
+  useEffect(() => {
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "visible" && uploading) {
+        requestWakeLock();
+      }
+    };
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+      releaseWakeLock();
+    };
+  }, [uploading, requestWakeLock, releaseWakeLock]);
+
   useEffect(() => {
     if (!uploading) return;
     const id = window.setInterval(() => {
@@ -536,6 +584,12 @@ export default function UploadZone({ eventId }: UploadZoneProps) {
     }
   };
 
+  const totalBytes = files.reduce((acc, f) => acc + f.size, 0);
+  const formattedTotalSize =
+    totalBytes > 1024 * 1024
+      ? `${(totalBytes / (1024 * 1024)).toFixed(1)} MB`
+      : `${Math.round(totalBytes / 1024)} KB`;
+
   return (
     <div className="w-full max-w-xl mx-auto space-y-4">
       {!uploading && <motion.div
@@ -630,12 +684,16 @@ export default function UploadZone({ eventId }: UploadZoneProps) {
             )}
 
             {uploading && (
-              <div className="px-4 py-2.5 border-b border-border/30 bg-muted/10 space-y-1.5">
+              <div className="px-4 py-2.5 border-b border-border/30 bg-muted/10 space-y-2">
                 <div className="flex justify-between text-xs text-muted-foreground">
                   <span>{t("guest.uploadingFiles")}</span>
                   <span>{progress}%</span>
                 </div>
                 <Progress value={progress} className="h-1.5" />
+                <div className="flex items-center justify-center gap-1.5 text-[11px] text-muted-foreground pt-1">
+                  <Smartphone className="w-3.5 h-3.5 text-primary shrink-0 animate-pulse" />
+                  <span>{t("guest.keepScreenOpen")}</span>
+                </div>
                 {slowConnection && (
                   <p className="text-xs font-medium text-amber-900 bg-amber-50 border border-amber-200 rounded-md px-2 py-1.5">
                     {t("guest.slowConnection")}
@@ -684,6 +742,24 @@ export default function UploadZone({ eventId }: UploadZoneProps) {
                 ))}
               </AnimatePresence>
             </ul>
+
+            {/* Prominent, large full-width upload CTA button */}
+            {!uploading && (
+              <div className="p-3 sm:p-4 bg-muted/20 border-t border-border/50 flex flex-col gap-2">
+                <Button
+                  size="lg"
+                  onClick={uploadFiles}
+                  className="w-full h-12 text-sm sm:text-base font-semibold shadow-md shadow-primary/20 flex items-center justify-center gap-2 rounded-xl transition-all active:scale-[0.99]"
+                >
+                  <UploadCloud className="w-5 h-5" />
+                  {t("guest.uploadNow", { count: files.length })}
+                </Button>
+                <p className="text-[11px] text-center text-muted-foreground">
+                  {formattedTotalSize} • {files.length}{" "}
+                  {files.length !== 1 ? t("guest.filesSelected") : t("guest.fileSelected")}
+                </p>
+              </div>
+            )}
           </motion.div>
         )}
       </AnimatePresence>

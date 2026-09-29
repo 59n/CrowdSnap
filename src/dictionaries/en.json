@@ -130,7 +130,11 @@
     "rateLimitedDesc": "You're uploading very quickly. We'll retry automatically in about {seconds} seconds.",
     "rateLimitedGiveUp": "Some photos couldn't be uploaded yet. Please wait about {seconds} seconds and try again.",
     "rateLimitedWaiting": "Rate limited — waiting ~{seconds}s then continuing automatically…",
-    "partialUpload": "Uploaded {ok}, {fail} still pending — tap Upload again or wait for auto-retry."
+    "partialUpload": "Uploaded {ok}, {fail} still pending — tap Upload again or wait for auto-retry.",
+    "uploadNow": "Upload {count} Photos Now",
+    "keepScreenOpen": "Please keep this screen open while uploading...",
+    "inAppBrowserWarning": "You are using an in-app browser. If photo selection fails, tap ⋯ or Share and choose \"Open in Safari\" or \"Open in Chrome\".",
+    "inAppDismiss": "Dismiss"
   },
   "editEvent": {
     "title": "Edit Event",

@@ -124,7 +124,11 @@
     "rateLimitedDesc": "Je uploadt erg snel. We proberen het over ongeveer {seconds} seconden opnieuw.",
     "rateLimitedGiveUp": "Sommige foto's konden nog niet worden geüpload. Wacht ongeveer {seconds} seconden en probeer opnieuw.",
     "rateLimitedWaiting": "Te snel — wacht ~{seconds}s, daarna gaan we automatisch verder…",
-    "partialUpload": "{ok} geüpload, {fail} nog open — tik opnieuw op Uploaden of wacht op auto-retry."
+    "partialUpload": "{ok} geüpload, {fail} nog open — tik opnieuw op Uploaden of wacht op auto-retry.",
+    "uploadNow": "Nu {count} foto's uploaden",
+    "keepScreenOpen": "Laat dit scherm open tijdens het uploaden...",
+    "inAppBrowserWarning": "In-app browser gedetecteerd. Als het kiezen van foto's niet werkt, tik op ⋯ of Delen en kies \"Open in Safari\" of \"Open in Chrome\".",
+    "inAppDismiss": "Sluiten"
   },
   "editEvent": {
     "title": "Event Bewerken",
