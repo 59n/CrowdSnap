@@ -7,7 +7,7 @@
 #
 # Examples:
 #   ./scripts/stress-test.sh cmsaf17js0000xon627bv0n9v
-#   ./scripts/stress-test.sh cmsaf17js0000xon627bv0n9v https://foto.thenas.us 200 50
+#   ./scripts/stress-test.sh cmsaf17js0000xon627bv0n9v https://wedding.example.com 200 50
 #
 set -euo pipefail
 
@@ -23,95 +23,125 @@ if [[ -z "$EVENT_ID" ]]; then
   echo "  EVENT_ID     Active event id (must be open for guests)"
   echo "  base_url     Default: http://localhost:3001"
   echo "  num_images   Default: 200"
-  echo "  concurrency  Parallel uploads (default: 50)"
+  echo "  concurrency  Default: 50"
   echo ""
-  echo "Env: MAX_RETRIES=5  (retries per file on 429)"
   exit 1
 fi
 
-URL="${BASE_URL%/}/api/upload/${EVENT_ID}"
-TEST_DIR="${TMPDIR:-/tmp}/crowdsnap_stress_$$"
-mkdir -p "$TEST_DIR"
-trap 'rm -rf "$TEST_DIR"' EXIT
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+FIXTURE="$SCRIPT_DIR/fixtures/sample.jpg"
 
-echo "🧪 CrowdSnap upload stress test"
-echo "   Event:       $EVENT_ID"
-echo "   URL:         $URL"
-echo "   Images:      $NUM_IMAGES"
-echo "   Concurrency: $CONCURRENCY"
-echo "   429 retries: $MAX_RETRIES per file (uses Retry-After)"
-echo ""
+if [[ ! -f "$FIXTURE" ]]; then
+  echo "Creating fixture image at $FIXTURE..."
+  mkdir -p "$SCRIPT_DIR/fixtures"
+  # Generate a minimal valid 100x100 JPEG using python
+  python3 -c "
+import struct
+# Minimal 1x1 JPEG bytes
+jpg = bytes([
+  0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x10, 0x4A, 0x46, 0x49, 0x46, 0x00, 0x01,
+  0x01, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00, 0xFF, 0xDB, 0x00, 0x43,
+  0x00, 0x08, 0x06, 0x06, 0x07, 0x06, 0x05, 0x08, 0x07, 0x07, 0x07, 0x09,
+  0x09, 0x08, 0x0A, 0x0C, 0x14, 0x0D, 0x0C, 0x0B, 0x0B, 0x0C, 0x19, 0x12,
+  0x13, 0x0F, 0x14, 0x1D, 0x1A, 0x1F, 0x1E, 0x1D, 0x1A, 0x1C, 0x1C, 0x20,
+  0x24, 0x2E, 0x27, 0x20, 0x22, 0x2C, 0x23, 0x1C, 0x1C, 0x28, 0x37, 0x29,
+  0x2C, 0x30, 0x31, 0x34, 0x34, 0x34, 0x1F, 0x27, 0x39, 0x3D, 0x38, 0x32,
+  0x3C, 0x2E, 0x33, 0x34, 0x32, 0xFF, 0xC0, 0x00, 0x0B, 0x08, 0x00, 0x01,
+  0x00, 0x01, 0x01, 0x01, 0x11, 0x00, 0xFF, 0xC4, 0x00, 0x1F, 0x00, 0x00,
+  0x01, 0x05, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08,
+  0x09, 0x0A, 0x0B, 0xFF, 0xDA, 0x00, 0x08, 0x01, 0x01, 0x00, 0x00, 0x3F,
+  0x00, 0xBF, 0x80, 0xFF, 0xD9
+])
+with open('$FIXTURE', 'wb') as f:
+  f.write(jpg)
+"
+fi
 
-# Minimal valid 1×1 PNG (real magic bytes)
-PNG_B64="iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="
-echo "📦 Generating $NUM_IMAGES PNG files…"
-for i in $(seq 1 "$NUM_IMAGES"); do
-  echo "$PNG_B64" | base64 -d > "$TEST_DIR/img_$i.png"
-done
+UPLOAD_URL="$BASE_URL/api/upload/$EVENT_ID"
+echo "=== CrowdSnap Stress Test ==="
+echo "Target:      $UPLOAD_URL"
+echo "Total imgs:  $NUM_IMAGES"
+echo "Concurrency: $CONCURRENCY"
+echo "============================="
 
-UPLOAD_ONE="$TEST_DIR/upload_one.sh"
-cat > "$UPLOAD_ONE" << 'EOS'
-#!/usr/bin/env bash
-set -euo pipefail
-FILE="$1"
-URL="$2"
-MAX_RETRIES="$3"
-DEVICE="stress-$(date +%s)-$RANDOM"
-attempt=0
-while true; do
-  # Capture body + headers
-  RESP=$(curl -sS -D - -o /tmp/cs_body_$$ -X POST \
-    -F "file=@${FILE};type=image/png" \
-    -H "x-device-id: ${DEVICE}" \
-    "$URL" || true)
-  CODE=$(printf '%s' "$RESP" | head -n 1 | awk '{print $2}')
-  RETRY=$(printf '%s' "$RESP" | awk 'BEGIN{IGNORECASE=1} /^Retry-After:/ {print $2}' | tr -d '\r')
+# Ensure target is reachable
+HTTP_CHECK=$(curl -s -o /dev/null -w "%{http_code}" "$BASE_URL/p/$EVENT_ID" || true)
+if [[ "$HTTP_CHECK" != "200" ]]; then
+  echo "WARNING: Event page returned HTTP $HTTP_CHECK (expected 200). Continuing anyway..."
+fi
 
-  if [[ "$CODE" == "200" ]]; then
-    echo "200"
-    exit 0
-  fi
+START_TIME=$(date +%s)
+SUCCESS_COUNT=0
+FAIL_COUNT=0
+RATE_LIMITED_COUNT=0
 
-  if [[ "$CODE" == "429" && "$attempt" -lt "$MAX_RETRIES" ]]; then
+upload_one() {
+  local idx="$1"
+  local dev_id="stress-device-$((idx % 10))"
+  local attempt=0
+  local wait_sec=1
+
+  while (( attempt < MAX_RETRIES )); do
     attempt=$((attempt + 1))
-    WAIT="${RETRY:-5}"
-    # clamp
-    if ! [[ "$WAIT" =~ ^[0-9]+$ ]]; then WAIT=5; fi
-    if [[ "$WAIT" -gt 120 ]]; then WAIT=120; fi
-    if [[ "$WAIT" -lt 1 ]]; then WAIT=1; fi
-    sleep "$WAIT"
-    continue
-  fi
+    
+    # Send request and capture HTTP code + response body
+    local resp
+    resp=$(curl -s -w "\n%{http_code}" \
+      -F "file=@$FIXTURE;filename=stress_${idx}.jpg;type=image/jpeg" \
+      -H "x-device-id: $dev_id" \
+      "$UPLOAD_URL" 2>&1)
+    
+    local code
+    code=$(echo "$resp" | tail -n1)
+    local body
+    body=$(echo "$resp" | head -n -1)
 
-  echo "${CODE:-000}"
-  exit 0
-done
-EOS
-chmod +x "$UPLOAD_ONE"
+    if [[ "$code" == "200" || "$code" == "201" ]]; then
+      echo "OK"
+      return 0
+    elif [[ "$code" == "429" ]]; then
+      # Extract retry-after or backoff exponentially
+      local retry_after
+      retry_after=$(echo "$body" | grep -o '"retryAfter":[0-9]*' | cut -d: -f2 || true)
+      if [[ -n "$retry_after" && "$retry_after" -gt 0 ]]; then
+        wait_sec="$retry_after"
+      else
+        wait_sec=$((wait_sec * 2))
+      fi
+      sleep "$wait_sec"
+    else
+      # Other client/server error
+      sleep 1
+    fi
+  done
 
-echo "🚀 Uploading with $CONCURRENCY parallel clients (auto-retry on 429)…"
-RESULTS="$TEST_DIR/results.txt"
-: > "$RESULTS"
+  echo "FAIL"
+  return 1
+}
 
-find "$TEST_DIR" -name 'img_*.png' -print0 \
-  | xargs -0 -n 1 -P "$CONCURRENCY" -I {} \
-    bash "$UPLOAD_ONE" {} "$URL" "$MAX_RETRIES" \
-  >> "$RESULTS" || true
+export -f upload_one
+export UPLOAD_URL FIXTURE MAX_RETRIES
 
-OK=$(grep -c '^200$' "$RESULTS" 2>/dev/null || echo 0)
-FAIL=$(grep -cv '^200$' "$RESULTS" 2>/dev/null || echo 0)
-TOTAL=$(wc -l < "$RESULTS" | tr -d ' ')
+# Run with xargs concurrency
+RESULTS=$(seq 1 "$NUM_IMAGES" | xargs -n 1 -P "$CONCURRENCY" bash -c 'upload_one "$@"' _)
+
+SUCCESS_COUNT=$(echo "$RESULTS" | grep -c "OK" || true)
+FAIL_COUNT=$(echo "$RESULTS" | grep -c "FAIL" || true)
+
+END_TIME=$(date +%s)
+DURATION=$((END_TIME - START_TIME))
+if (( DURATION == 0 )); then DURATION=1; fi
+RPS=$((SUCCESS_COUNT / DURATION))
 
 echo ""
-echo "✅ Done"
-echo "   Total responses: $TOTAL"
-echo "   Success (200):   $OK"
-echo "   Failed:          $FAIL"
-if [[ "${FAIL:-0}" != "0" ]]; then
-  echo "   Status breakdown:"
-  sort "$RESULTS" | uniq -c | sort -rn
-  echo ""
-  echo "Tip: 429 after all retries = still over limit (raise UPLOAD_RATE_PER_IP or lower concurrency)"
-  echo "     403 = event closed / not active"
-  echo "     507 = storage full"
+echo "=== Test Results ==="
+echo "Duration:      ${DURATION}s"
+echo "Successful:    $SUCCESS_COUNT / $NUM_IMAGES"
+echo "Failed:        $FAIL_COUNT"
+echo "Throughput:    ~${RPS} uploads/sec"
+echo "===================="
+
+if (( FAIL_COUNT > 0 )); then
+  exit 1
 fi

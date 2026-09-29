@@ -7,15 +7,12 @@
   <key>ProgramArguments</key>
   <array>
     <string>/bin/bash</string>
-    <string>/Users/jkemp/Library/Application Support/CrowdSnap/pull-backup-mac.sh</string>
+    <string>-c</string>
+    <string>mkdir -p "$HOME/Library/Logs/CrowdSnap" &amp;&amp; exec "$HOME/Library/Application Support/CrowdSnap/pull-backup-mac.sh" &gt;&gt; "$HOME/Library/Logs/CrowdSnap/backup-pull.log" 2&gt;&amp;1</string>
   </array>
   <key>RunAtLoad</key>
   <true/>
   <key>StartInterval</key>
   <integer>21600</integer>
-  <key>StandardOutPath</key>
-  <string>/Users/jkemp/Library/Logs/CrowdSnap/backup-pull.log</string>
-  <key>StandardErrorPath</key>
-  <string>/Users/jkemp/Library/Logs/CrowdSnap/backup-pull.log</string>
 </dict>
 </plist>

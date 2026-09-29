@@ -1,5 +1,9 @@
 import type { NextConfig } from "next";
 
+const devOrigins = process.env.ALLOWED_DEV_ORIGINS
+  ? process.env.ALLOWED_DEV_ORIGINS.split(",").map((s) => s.trim())
+  : undefined;
+
 const nextConfig: NextConfig = {
   output: "standalone",
   // Hide X-Powered-By
@@ -15,7 +19,7 @@ const nextConfig: NextConfig = {
   experimental: {
     optimizePackageImports: ["lucide-react", "date-fns", "framer-motion"],
   },
-  allowedDevOrigins: ["foto.thenas.us", "pangolin.thenas.us", "100.123.80.96"],
+  ...(devOrigins ? { allowedDevOrigins: devOrigins } : {}),
 };
 
 export default nextConfig;

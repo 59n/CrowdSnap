@@ -6,8 +6,8 @@
 import http from 'k6/http';
 import { check, sleep } from 'k6';
 
-const BASE_URL = (__ENV.BASE_URL || 'http://192.168.0.205:3000').replace(/\/$/, '');
-const EVENT_ID = __ENV.EVENT_ID || 'cmsad263r0000wnn6fp5kbj6i';
+const BASE_URL = (__ENV.BASE_URL || 'http://localhost:3000').replace(/\/$/, '');
+const EVENT_ID = __ENV.EVENT_ID || 'demo-event-id';
 
 const uploadBytes = open('./test-photo.jpg', 'b');
 
@@ -59,22 +59,18 @@ export default function guestFlow() {
     {
       file: http.file(
         uploadBytes,
-        `wedding-snap-${__VU}-${__ITER}.jpg`,
+        `photo-${__VU}-${Date.now()}.jpg`,
         'image/jpeg'
       ),
     },
     {
-      headers: { 
-        'x-device-id': deviceId,
-        'user-agent': __VU % 2 === 0 
-          ? 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) AppleWebKit/605.1.15'
-          : 'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36',
-      },
+      headers: { 'x-device-id': deviceId },
       tags: { name: 'upload' },
-      timeout: '30s',
     }
   );
-  check(upload, { 'upload completed (200)': (r) => r.status === 200 });
+  check(upload, {
+    'upload successful (200)': (r) => r.status === 200,
+  });
 
   sleep(1);
 }

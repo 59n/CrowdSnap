@@ -9,7 +9,7 @@
  * Point it at a throwaway event with relaxSecurity on, not a real wedding.
  *
  *   k6 run scripts/k6/guest-breakpoint.js
- *   BASE_URL=https://foto.thenas.us EVENT_ID=k6guestload01 k6 run scripts/k6/guest-breakpoint.js
+ *   BASE_URL=https://wedding.example.com EVENT_ID=k6guestload01 k6 run scripts/k6/guest-breakpoint.js
  */
 import http from 'k6/http';
 import { check, sleep } from 'k6';
@@ -60,7 +60,7 @@ export default function guestFlow() {
   });
   check(page, { 'page 200': (r) => r.status === 200 });
 
-  sleep(1);
+  sleep(0.5);
 
   const gallery = http.get(`${BASE_URL}/api/p/${EVENT_ID}/uploads`, {
     headers: { 'x-device-id': deviceId },
@@ -68,22 +68,21 @@ export default function guestFlow() {
   });
   check(gallery, { 'gallery 200': (r) => r.status === 200 });
 
-  const upload = http.post(
+  const res = http.post(
     `${BASE_URL}/api/upload/${EVENT_ID}`,
     {
       file: http.file(
         uploadBytes,
-        `k6-${__VU}-${__ITER}.${uploadIsJpeg ? 'jpg' : 'png'}`,
+        `photo-${__VU}-${Date.now()}.${uploadIsJpeg ? 'jpg' : 'png'}`,
         uploadIsJpeg ? 'image/jpeg' : 'image/png'
       ),
     },
     {
       headers: { 'x-device-id': deviceId },
       tags: { name: 'upload' },
-      timeout: '30s',
     }
   );
-  check(upload, { 'upload 200': (r) => r.status === 200 });
+  check(res, { 'upload 200': (r) => r.status === 200 });
 
   sleep(2);
 }
