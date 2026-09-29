@@ -128,19 +128,19 @@
 /* Guest hero: phones hold the tall crop, then ease up to the compact layout.
    Compact copy offset is extra-low because the cover circle is optional. */
 @keyframes guest-hero-settle {
-  0%, 42% { height: 80dvh; }
-  100% { height: min(56vh, 460px); }
+  0%, 38% { height: 80dvh; }
+  100% { height: min(32vh, 240px); }
 }
 @keyframes guest-hero-copy-settle {
-  0%, 42% { margin-top: min(46dvh, 420px); }
-  100% { margin-top: min(32vh, 260px); }
+  0%, 38% { margin-top: min(46dvh, 420px); }
+  100% { margin-top: min(10vh, 64px); }
 }
 @keyframes guest-hero-closed-settle {
-  0%, 42% { padding-top: min(46dvh, 420px); }
-  100% { padding-top: min(32vh, 260px); }
+  0%, 38% { padding-top: min(46dvh, 420px); }
+  100% { padding-top: min(10vh, 64px); }
 }
 @keyframes guest-hero-ken {
-  0%, 42% { transform: scale(1.08); }
+  0%, 38% { transform: scale(1.08); }
   100% { transform: scale(1); }
 }
 
@@ -170,13 +170,13 @@
   @media (max-width: 767.98px) {
     @media (prefers-reduced-motion: reduce) {
       .guest-hero-banner {
-        height: min(56vh, 460px);
+        height: min(32vh, 240px);
       }
       .guest-hero-copy {
-        margin-top: min(32vh, 260px);
+        margin-top: min(10vh, 64px);
       }
       .guest-hero-closed-copy {
-        padding-top: min(32vh, 260px);
+        padding-top: min(10vh, 64px);
       }
     }
     @media (prefers-reduced-motion: no-preference) {
@@ -193,13 +193,16 @@
         animation: guest-hero-ken 2.7s cubic-bezier(0.16, 1, 0.3, 1) both;
       }
       [data-hero-intro="skip"] .guest-hero-banner {
-        height: min(56vh, 460px);
+        height: min(32vh, 240px);
+        transition: height 0.35s ease-out;
       }
       [data-hero-intro="skip"] .guest-hero-copy {
-        margin-top: min(32vh, 260px);
+        margin-top: min(10vh, 64px);
+        transition: margin-top 0.35s ease-out;
       }
       [data-hero-intro="skip"] .guest-hero-closed-copy {
-        padding-top: min(32vh, 260px);
+        padding-top: min(10vh, 64px);
+        transition: padding-top 0.35s ease-out;
       }
     }
   }
