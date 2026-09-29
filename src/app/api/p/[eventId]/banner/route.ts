@@ -2,9 +2,8 @@ import { NextResponse } from 'next/server';
 import fs from 'fs';
 import { webStreamFromNode } from '@/lib/web-stream';
 import { debugLog } from '@/lib/debug-log';
-import prisma from '@/lib/db';
 import { resolveReadPath, isSafeEventId } from '@/lib/storage';
-import { expirePastEvents } from '@/lib/events';
+import { expirePastEvents, findEventByIdOrSlug } from '@/lib/events';
 
 /** Public full-width hero banner for the guest event page. */
 export async function GET(
@@ -18,16 +17,16 @@ export async function GET(
 
   try {
     await expirePastEvents();
-    const event = await prisma.event.findUnique({ where: { id: eventId } });
+    const event = await findEventByIdOrSlug(eventId);
     if (!event) {
       return new NextResponse(null, { status: 404 });
     }
 
-    const bannerPath = resolveReadPath(`events/${eventId}/metadata/banner.bin`);
-    const metaPath = resolveReadPath(`events/${eventId}/metadata/banner_meta.json`);
+    const bannerPath = resolveReadPath(`events/${event.id}/metadata/banner.bin`);
+    const metaPath = resolveReadPath(`events/${event.id}/metadata/banner_meta.json`);
 
     if (!bannerPath) {
-      debugLog('warn', 'banner.missing', { eventId });
+      debugLog('warn', 'banner.missing', { eventId, canonicalId: event.id });
       return new NextResponse(null, {
         status: 404,
         headers: { 'Cache-Control': 'no-store' },
@@ -59,7 +58,6 @@ export async function GET(
     const webStream = webStreamFromNode(nodeStream);
 
     return new NextResponse(webStream as unknown as BodyInit, {
-      status: 200,
       headers: {
         'Content-Type': mimeType,
         'Content-Length': stat.size.toString(),
@@ -67,7 +65,11 @@ export async function GET(
         'Cache-Control': cache,
       },
     });
-  } catch {
+  } catch (error) {
+    debugLog('error', 'banner.get_failed', {
+      eventId,
+      error: error instanceof Error ? error.message : String(error),
+    });
     return new NextResponse(null, { status: 500 });
   }
 }

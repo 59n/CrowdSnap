@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/db';
-import { expirePastEvents, isEventOpenForGuests } from '@/lib/events';
+import { expirePastEvents, isEventOpenForGuests, findEventByIdOrSlug } from '@/lib/events';
 import { isSafeEventId } from '@/lib/storage';
 
 export async function GET(
@@ -19,13 +19,13 @@ export async function GET(
 
   await expirePastEvents();
 
-  const event = await prisma.event.findUnique({ where: { id: eventId } });
+  const event = await findEventByIdOrSlug(eventId);
   if (!event || !isEventOpenForGuests(event)) {
     return NextResponse.json({ error: 'Event not found' }, { status: 404 });
   }
 
   const uploads = await prisma.upload.findMany({
-    where: { eventId, deviceId },
+    where: { eventId: event.id, deviceId },
     orderBy: { createdAt: 'desc' },
     select: {
       id: true,

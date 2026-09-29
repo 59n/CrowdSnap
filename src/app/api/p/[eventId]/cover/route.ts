@@ -1,9 +1,8 @@
 import { NextResponse } from 'next/server';
 import fs from 'fs';
 import { webStreamFromNode } from '@/lib/web-stream';
-import prisma from '@/lib/db';
 import { resolveReadPath, isSafeEventId } from '@/lib/storage';
-import { expirePastEvents } from '@/lib/events';
+import { expirePastEvents, findEventByIdOrSlug } from '@/lib/events';
 
 export async function GET(
   request: Request,
@@ -16,14 +15,14 @@ export async function GET(
 
   try {
     await expirePastEvents();
-    const event = await prisma.event.findUnique({ where: { id: eventId } });
+    const event = await findEventByIdOrSlug(eventId);
     // Cover is cosmetic; allow if event exists (closed page may show grayscale cover).
     if (!event) {
       return new NextResponse(null, { status: 404 });
     }
 
-    const coverPath = resolveReadPath(`events/${eventId}/metadata/cover.bin`);
-    const metaPath = resolveReadPath(`events/${eventId}/metadata/cover_meta.json`);
+    const coverPath = resolveReadPath(`events/${event.id}/metadata/cover.bin`);
+    const metaPath = resolveReadPath(`events/${event.id}/metadata/cover_meta.json`);
 
     if (!coverPath || !metaPath) {
       return new NextResponse(null, {
@@ -61,7 +60,8 @@ export async function GET(
         'Cache-Control': 'public, max-age=0, must-revalidate',
       },
     });
-  } catch {
+  } catch (error) {
+    console.error('Error fetching cover:', error);
     return new NextResponse(null, { status: 500 });
   }
 }

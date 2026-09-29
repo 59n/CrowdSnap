@@ -6,7 +6,7 @@ import path from 'path';
 import { webStreamFromNode } from '@/lib/web-stream';
 import { getPrimaryPath, resolveReadPath, isSafeEventId } from '@/lib/storage';
 import { queueImageThumb } from '@/lib/thumb-queue';
-import { expirePastEvents, isEventOpenForGuests } from '@/lib/events';
+import { expirePastEvents, isEventOpenForGuests, findEventByIdOrSlug } from '@/lib/events';
 import { isSafeId } from '@/lib/path-safe';
 
 async function streamJpeg(filePath: string) {
@@ -40,18 +40,18 @@ export async function GET(
 
   await expirePastEvents();
 
-  const event = await prisma.event.findUnique({ where: { id: eventId } });
+  const event = await findEventByIdOrSlug(eventId);
   if (!event || !isEventOpenForGuests(event)) {
     return new NextResponse('Not found', { status: 404 });
   }
 
   const upload = await prisma.upload.findUnique({ where: { id: uploadId } });
-  if (!upload || upload.eventId !== eventId) {
+  if (!upload || upload.eventId !== event.id) {
     return new NextResponse('Not found', { status: 404 });
   }
 
-  const thumbPrimary = path.join(getPrimaryPath(), 'events', eventId, 'thumbs', `${uploadId}.jpg`);
-  const effectiveThumb = resolveReadPath(`events/${eventId}/thumbs/${uploadId}.jpg`);
+  const thumbPrimary = path.join(getPrimaryPath(), 'events', event.id, 'thumbs', `${uploadId}.jpg`);
+  const effectiveThumb = resolveReadPath(`events/${event.id}/thumbs/${uploadId}.jpg`);
   const effectiveOriginal = resolveReadPath(upload.relativePath);
 
   if (effectiveThumb) {
@@ -63,10 +63,17 @@ export async function GET(
     queueImageThumb({
       originalPath: effectiveOriginal,
       thumbPath: thumbPrimary,
-      mirrorRelativePath: `events/${eventId}/thumbs/${uploadId}.jpg`,
+      mirrorRelativePath: `events/${event.id}/thumbs/${uploadId}.jpg`,
       isOverflow: false,
     });
   }
 
-  return new NextResponse('No thumbnail', { status: 404 });
+  // Not ready yet: try again shortly without caching the miss
+  return new NextResponse('Thumbnail pending', {
+    status: 503,
+    headers: {
+      'Retry-After': '1',
+      'Cache-Control': 'no-store, must-revalidate',
+    },
+  });
 }

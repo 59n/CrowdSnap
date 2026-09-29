@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/db';
 import { deleteUploadFiles, isSafeEventId } from '@/lib/storage';
-import { expirePastEvents, isEventOpenForGuests } from '@/lib/events';
+import { expirePastEvents, isEventOpenForGuests, findEventByIdOrSlug } from '@/lib/events';
 import { isSafeId } from '@/lib/path-safe';
 
 export async function DELETE(
@@ -21,14 +21,14 @@ export async function DELETE(
 
   await expirePastEvents();
 
-  const event = await prisma.event.findUnique({ where: { id: eventId } });
+  const event = await findEventByIdOrSlug(eventId);
   if (!event || !isEventOpenForGuests(event)) {
     return NextResponse.json({ error: 'Event is closed' }, { status: 403 });
   }
 
   const upload = await prisma.upload.findUnique({ where: { id: uploadId } });
 
-  if (!upload || upload.eventId !== eventId) {
+  if (!upload || upload.eventId !== event.id) {
     return NextResponse.json({ error: 'Not found' }, { status: 404 });
   }
 

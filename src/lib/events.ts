@@ -82,6 +82,17 @@ export async function expirePastEvents(force = false): Promise<number> {
   return result.count;
 }
 
+/**
+ * Find an event by its unique ID or custom slug.
+ */
+export async function findEventByIdOrSlug(idOrSlug: string) {
+  let event = await prisma.event.findUnique({ where: { id: idOrSlug } });
+  if (!event) {
+    event = await prisma.event.findUnique({ where: { slug: idOrSlug } });
+  }
+  return event;
+}
+
 /** Test helper */
 export function resetExpireThrottle() {
   lastExpireAt = 0;
