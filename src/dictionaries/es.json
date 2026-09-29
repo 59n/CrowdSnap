@@ -133,7 +133,13 @@
     "uploadNow": "Subir {count} fotos ahora",
     "keepScreenOpen": "Por favor, mantén esta pantalla abierta mientras se suben los archivos...",
     "inAppBrowserWarning": "Navegador de app detectado. Si falla la selección de fotos, toca ⋯ o Compartir y elige \"Abrir en Safari\" o \"Abrir en Chrome\".",
-    "inAppDismiss": "Cerrar"
+    "inAppDismiss": "Cerrar",
+    "uploadNowSinglePhoto": "Subir 1 foto ahora",
+    "uploadNowVideos": "Subir {count} videos ahora",
+    "uploadNowSingleVideo": "Subir 1 video ahora",
+    "uploadNowMixed": "Subir {count} fotos y videos ahora",
+    "uploadNowFiles": "Subir {count} archivos ahora",
+    "uploadNowSingleFile": "Subir 1 archivo ahora"
   },
   "editEvent": {
     "title": "Editar Evento",

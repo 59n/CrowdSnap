@@ -133,7 +133,13 @@
     "uploadNow": "Jetzt {count} Fotos hochladen",
     "keepScreenOpen": "Bitte diesen Bildschirm während des Uploads geöffnet lassen...",
     "inAppBrowserWarning": "In-App-Browser erkannt. Falls der Foto-Upload nicht klappt, tippe auf ⋯ oder Teilen und wähle \"In Safari öffnen\" oder \"In Chrome öffnen\".",
-    "inAppDismiss": "Ausblenden"
+    "inAppDismiss": "Ausblenden",
+    "uploadNowSinglePhoto": "Jetzt 1 Foto hochladen",
+    "uploadNowVideos": "Jetzt {count} Videos hochladen",
+    "uploadNowSingleVideo": "Jetzt 1 Video hochladen",
+    "uploadNowMixed": "Jetzt {count} Fotos & Videos hochladen",
+    "uploadNowFiles": "Jetzt {count} Dateien hochladen",
+    "uploadNowSingleFile": "Jetzt 1 Datei hochladen"
   },
   "editEvent": {
     "title": "Event bearbeiten",

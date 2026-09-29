@@ -133,7 +133,13 @@
     "uploadNow": "Télécharger {count} photos maintenant",
     "keepScreenOpen": "Veuillez garder cet écran ouvert pendant l'envoi...",
     "inAppBrowserWarning": "Navigateur intégré détecté. Si la sélection de photos échoue, appuyez sur ⋯ ou Partager et choisissez \"Ouvrir dans Safari\" ou \"Ouvrir dans Chrome\".",
-    "inAppDismiss": "Fermer"
+    "inAppDismiss": "Fermer",
+    "uploadNowSinglePhoto": "Télécharger 1 photo maintenant",
+    "uploadNowVideos": "Télécharger {count} vidéos maintenant",
+    "uploadNowSingleVideo": "Télécharger 1 vidéo maintenant",
+    "uploadNowMixed": "Télécharger {count} photos et vidéos maintenant",
+    "uploadNowFiles": "Télécharger {count} fichiers maintenant",
+    "uploadNowSingleFile": "Télécharger 1 fichier maintenant"
   },
   "editEvent": {
     "title": "Modifier Événement",

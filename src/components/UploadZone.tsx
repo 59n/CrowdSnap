@@ -608,6 +608,36 @@ export default function UploadZone({ eventId }: UploadZoneProps) {
       ? `${(totalBytes / (1024 * 1024)).toFixed(1)} MB`
       : `${Math.round(totalBytes / 1024)} KB`;
 
+  const isVideoFile = (file: File) =>
+    file.type.startsWith("video/") || /\.(mov|mp4|m4v|3gp|webm)$/i.test(file.name);
+
+  const isImageFile = (file: File) =>
+    file.type.startsWith("image/") || /\.(jpe?g|png|heic|heif|avif|webp|gif)$/i.test(file.name);
+
+  const getUploadButtonLabel = () => {
+    const count = files.length;
+    if (count === 0) return "";
+    const hasVideos = files.some(isVideoFile);
+    const hasPhotos = files.some(isImageFile);
+
+    if (hasPhotos && hasVideos) {
+      return t("guest.uploadNowMixed", { count });
+    }
+    if (hasVideos) {
+      return count === 1
+        ? t("guest.uploadNowSingleVideo", { count: 1 })
+        : t("guest.uploadNowVideos", { count });
+    }
+    if (hasPhotos) {
+      return count === 1
+        ? t("guest.uploadNowSinglePhoto", { count: 1 })
+        : t("guest.uploadNow", { count });
+    }
+    return count === 1
+      ? t("guest.uploadNowSingleFile", { count: 1 })
+      : t("guest.uploadNowFiles", { count });
+  };
+
   return (
     <div className="w-full max-w-xl mx-auto space-y-4">
       {!uploading && <motion.div
@@ -683,16 +713,32 @@ export default function UploadZone({ eventId }: UploadZoneProps) {
             exit={{ opacity: 0, y: 8 }}
             className="bg-card border border-border/60 rounded-xl overflow-hidden shadow-sm"
           >
-            <div className="px-4 py-3 border-b border-border/50 bg-muted/20 flex justify-between items-center">
-              <span className="text-sm font-medium flex items-center gap-2">
-                <ImageIcon className="w-4 h-4 text-primary" />
-                {files.length}{" "}
-                {files.length !== 1 ? t("guest.filesSelected") : t("guest.fileSelected")}
-              </span>
-              <span className="text-xs text-muted-foreground font-mono">
-                {formattedTotalSize}
-              </span>
-            </div>
+            {/* Prominent, large full-width upload CTA button moved to the top of the box */}
+            {!uploading && (
+              <div
+                ref={uploadButtonRef}
+                className="p-3 sm:p-4 bg-muted/20 border-b border-border/50 flex flex-col gap-2"
+              >
+                <Button
+                  size="lg"
+                  onClick={uploadFiles}
+                  className="w-full h-12 text-sm sm:text-base font-semibold shadow-md shadow-primary/20 flex items-center justify-center gap-2 rounded-xl transition-all active:scale-[0.99]"
+                >
+                  <UploadCloud className="w-5 h-5" />
+                  {getUploadButtonLabel()}
+                </Button>
+                <div className="flex justify-between items-center text-xs text-muted-foreground px-1">
+                  <span className="font-medium flex items-center gap-1.5">
+                    <ImageIcon className="w-3.5 h-3.5 text-primary" />
+                    {files.length}{" "}
+                    {files.length !== 1 ? t("guest.filesSelected") : t("guest.fileSelected")}
+                  </span>
+                  <span className="font-mono text-[11px]">
+                    {formattedTotalSize}
+                  </span>
+                </div>
+              </div>
+            )}
 
             {failedNotice && !uploading && (
               <div className="px-4 py-2.5 border-b border-destructive/20 bg-destructive/5 flex gap-2 items-start">
@@ -702,7 +748,15 @@ export default function UploadZone({ eventId }: UploadZoneProps) {
             )}
 
             {uploading && (
-              <div className="px-4 py-2.5 border-b border-border/30 bg-muted/10 space-y-2">
+              <div className="px-4 py-3 border-b border-border/30 bg-muted/10 space-y-2">
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span className="font-medium flex items-center gap-1.5">
+                    <ImageIcon className="w-3.5 h-3.5 text-primary" />
+                    {files.length}{" "}
+                    {files.length !== 1 ? t("guest.filesSelected") : t("guest.fileSelected")}
+                  </span>
+                  <span className="font-mono text-[11px]">{formattedTotalSize}</span>
+                </div>
                 <div className="flex justify-between text-xs text-muted-foreground">
                   <span>{t("guest.uploadingFiles")}</span>
                   <span>{progress}%</span>
@@ -736,10 +790,10 @@ export default function UploadZone({ eventId }: UploadZoneProps) {
                     className="flex items-center gap-3 px-4 py-2.5 group"
                   >
                     <div className="w-9 h-9 rounded-md bg-muted flex-shrink-0 overflow-hidden flex items-center justify-center">
-                      {file.type.startsWith("image/") ? (
-                        <PreviewImage file={file} />
-                      ) : (
+                      {isVideoFile(file) ? (
                         <Film className="w-4 h-4 text-muted-foreground" />
+                      ) : (
+                        <PreviewImage file={file} />
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
@@ -760,27 +814,6 @@ export default function UploadZone({ eventId }: UploadZoneProps) {
                 ))}
               </AnimatePresence>
             </ul>
-
-            {/* Prominent, large full-width upload CTA button */}
-            {!uploading && (
-              <div
-                ref={uploadButtonRef}
-                className="p-3 sm:p-4 bg-muted/20 border-t border-border/50 flex flex-col gap-2"
-              >
-                <Button
-                  size="lg"
-                  onClick={uploadFiles}
-                  className="w-full h-12 text-sm sm:text-base font-semibold shadow-md shadow-primary/20 flex items-center justify-center gap-2 rounded-xl transition-all active:scale-[0.99]"
-                >
-                  <UploadCloud className="w-5 h-5" />
-                  {t("guest.uploadNow", { count: files.length })}
-                </Button>
-                <p className="text-[11px] text-center text-muted-foreground">
-                  {formattedTotalSize} • {files.length}{" "}
-                  {files.length !== 1 ? t("guest.filesSelected") : t("guest.fileSelected")}
-                </p>
-              </div>
-            )}
           </motion.div>
         )}
       </AnimatePresence>

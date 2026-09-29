@@ -133,7 +133,13 @@
     "uploadNow": "Carica {count} foto adesso",
     "keepScreenOpen": "Ti preghiamo di tenere aperto questo schermo durante il caricamento...",
     "inAppBrowserWarning": "Browser in-app rilevato. Se la selezione di foto fallisce, tocca ⋯ o Condividi e scegli \"Apri in Safari\" o \"Apri in Chrome\".",
-    "inAppDismiss": "Chiudi"
+    "inAppDismiss": "Chiudi",
+    "uploadNowSinglePhoto": "Carica 1 foto adesso",
+    "uploadNowVideos": "Carica {count} video adesso",
+    "uploadNowSingleVideo": "Carica 1 video adesso",
+    "uploadNowMixed": "Carica {count} foto e video adesso",
+    "uploadNowFiles": "Carica {count} file adesso",
+    "uploadNowSingleFile": "Carica 1 file adesso"
   },
   "editEvent": {
     "title": "Modifica Evento",

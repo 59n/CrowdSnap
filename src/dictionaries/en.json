@@ -134,7 +134,13 @@
     "uploadNow": "Upload {count} Photos Now",
     "keepScreenOpen": "Please keep this screen open while uploading...",
     "inAppBrowserWarning": "You are using an in-app browser. If photo selection fails, tap ⋯ or Share and choose \"Open in Safari\" or \"Open in Chrome\".",
-    "inAppDismiss": "Dismiss"
+    "inAppDismiss": "Dismiss",
+    "uploadNowSinglePhoto": "Upload 1 Photo Now",
+    "uploadNowVideos": "Upload {count} Videos Now",
+    "uploadNowSingleVideo": "Upload 1 Video Now",
+    "uploadNowMixed": "Upload {count} Photos & Videos Now",
+    "uploadNowFiles": "Upload {count} Files Now",
+    "uploadNowSingleFile": "Upload 1 File Now"
   },
   "editEvent": {
     "title": "Edit Event",

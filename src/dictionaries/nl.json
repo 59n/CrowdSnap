@@ -128,7 +128,13 @@
     "uploadNow": "Nu {count} foto's uploaden",
     "keepScreenOpen": "Laat dit scherm open tijdens het uploaden...",
     "inAppBrowserWarning": "In-app browser gedetecteerd. Als het kiezen van foto's niet werkt, tik op ⋯ of Delen en kies \"Open in Safari\" of \"Open in Chrome\".",
-    "inAppDismiss": "Sluiten"
+    "inAppDismiss": "Sluiten",
+    "uploadNowSinglePhoto": "Nu 1 foto uploaden",
+    "uploadNowVideos": "Nu {count} video's uploaden",
+    "uploadNowSingleVideo": "Nu 1 video uploaden",
+    "uploadNowMixed": "Nu {count} foto's & video's uploaden",
+    "uploadNowFiles": "Nu {count} bestanden uploaden",
+    "uploadNowSingleFile": "Nu 1 bestand uploaden"
   },
   "editEvent": {
     "title": "Event Bewerken",

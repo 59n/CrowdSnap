@@ -133,7 +133,13 @@
     "uploadNow": "Enviar {count} fotos agora",
     "keepScreenOpen": "Por favor, mantenha esta tela aberta durante o envio...",
     "inAppBrowserWarning": "Navegador interno detectado. Se a seleção de fotos falhar, toque em ⋯ ou Compartilhar e escolha \"Abrir no Safari\" ou \"Abrir no Chrome\".",
-    "inAppDismiss": "Fechar"
+    "inAppDismiss": "Fechar",
+    "uploadNowSinglePhoto": "Enviar 1 foto agora",
+    "uploadNowVideos": "Enviar {count} vídeos agora",
+    "uploadNowSingleVideo": "Enviar 1 vídeo agora",
+    "uploadNowMixed": "Enviar {count} fotos e vídeos agora",
+    "uploadNowFiles": "Enviar {count} arquivos agora",
+    "uploadNowSingleFile": "Enviar 1 arquivo agora"
   },
   "editEvent": {
     "title": "Editar Evento",
