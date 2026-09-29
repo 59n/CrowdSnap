@@ -144,7 +144,8 @@
     "uploadNowSingleVideo": "Jetzt 1 Video hochladen",
     "uploadNowMixed": "Jetzt {count} Fotos & Videos hochladen",
     "uploadNowFiles": "Jetzt {count} Dateien hochladen",
-    "uploadNowSingleFile": "Jetzt 1 Datei hochladen"
+    "uploadNowSingleFile": "Jetzt 1 Datei hochladen",
+    "addMorePhotos": "Weitere Fotos oder Videos hinzufügen"
   },
   "editEvent": {
     "title": "Event bearbeiten",

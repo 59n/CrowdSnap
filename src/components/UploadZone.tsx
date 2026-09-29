@@ -368,6 +368,8 @@ export default function UploadZone({ eventId }: UploadZoneProps) {
   }, []);
 
   const handleFilesSelected = useCallback((newFiles: File[]) => {
+    setUploadComplete(false);
+    setFailedNotice(null);
     const valid = newFiles.filter((f) => isLikelyGuestMediaFile(f));
     const invalid = newFiles.filter((f) => !isLikelyGuestMediaFile(f));
     if (invalid.length) toast.error(t("guest.someSkipped"));
@@ -640,71 +642,75 @@ export default function UploadZone({ eventId }: UploadZoneProps) {
 
   return (
     <div className="w-full max-w-xl mx-auto space-y-4">
-      {!uploading && <motion.div
-        animate={{ scale: isDragging ? 1.02 : 1 }}
-        transition={{ type: "spring", stiffness: 300, damping: 20 }}
-        className={`relative flex flex-col items-center justify-center w-full rounded-2xl border-2 border-dashed transition-all duration-200 overflow-hidden ${
-          isDragging
-            ? "border-primary bg-primary/8 shadow-lg shadow-primary/10"
-            : "border-border/50 bg-card/60 hover:border-primary/40 hover:bg-card"
-        }`}
-        style={{ minHeight: "13rem" }}
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
-        onDrop={uploading ? undefined : handleDrop}
-      >
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/3 to-transparent pointer-events-none" />
+      {/* Initial big dropzone: shown only when no files are currently staged */}
+      {files.length === 0 && !uploading && (
+        <motion.div
+          animate={{ scale: isDragging ? 1.02 : 1 }}
+          transition={{ type: "spring", stiffness: 300, damping: 20 }}
+          className={`relative flex flex-col items-center justify-center w-full rounded-2xl border-2 border-dashed transition-all duration-200 overflow-hidden ${
+            isDragging
+              ? "border-primary bg-primary/8 shadow-lg shadow-primary/10"
+              : "border-border/50 bg-card/60 hover:border-primary/40 hover:bg-card"
+          }`}
+          style={{ minHeight: "13rem" }}
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+        >
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/3 to-transparent pointer-events-none" />
 
-        {uploadComplete ? (
-          <div className="flex flex-col items-center justify-center py-10 px-6 z-10">
-            <motion.div
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              transition={{ type: "spring", stiffness: 200, damping: 18 }}
-            >
-              <CheckCircle2 className="w-14 h-14 mb-3 text-green-500" />
-            </motion.div>
-            <p className="text-base font-semibold text-foreground">{t("guest.thankYou")}</p>
-            <p className="text-sm text-muted-foreground mt-1 mb-5 text-center">
-              {t("guest.safelyShared")}
-            </p>
-            <Button variant="outline" size="sm" onClick={() => setUploadComplete(false)}>
-              <Plus className="w-3.5 h-3.5 mr-1.5" />
-              {t("guest.uploadMore")}
-            </Button>
-          </div>
-        ) : (
-          <>
-            <div className="flex flex-col items-center justify-center py-10 px-6 z-10 text-center">
-              <div
-                className={`p-4 rounded-full mb-4 transition-colors ${
-                  isDragging ? "bg-primary/15" : "bg-muted/60"
-                }`}
+          {uploadComplete ? (
+            <div className="flex flex-col items-center justify-center py-10 px-6 z-10">
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ type: "spring", stiffness: 200, damping: 18 }}
               >
-                <UploadCloud
-                  className={`w-9 h-9 transition-colors ${
-                    isDragging ? "text-primary" : "text-muted-foreground/60"
-                  }`}
-                />
-              </div>
-              <p className="text-sm font-medium text-foreground/80">
-                <span className="text-primary font-semibold">{t("guest.clickToUpload")}</span>{" "}
-                {t("guest.orDragAndDrop")}
+                <CheckCircle2 className="w-14 h-14 mb-3 text-green-500" />
+              </motion.div>
+              <p className="text-base font-semibold text-foreground">{t("guest.thankYou")}</p>
+              <p className="text-sm text-muted-foreground mt-1 mb-5 text-center">
+                {t("guest.safelyShared")}
               </p>
-              <p className="text-xs text-muted-foreground mt-1.5">{t("guest.supportedFiles")}</p>
+              <Button variant="outline" size="sm" onClick={() => setUploadComplete(false)}>
+                <Plus className="w-3.5 h-3.5 mr-1.5" />
+                {t("guest.uploadMore")}
+              </Button>
             </div>
-            <input
-              type="file"
-              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20"
-              multiple
-              onChange={handleFileInput}
-              disabled={uploading}
-              accept="image/*,video/*,.heic,.heif,.avif,.mov,.mp4,.m4v,.3gp,.webm"
-            />
-          </>
-        )}
-      </motion.div>}
+          ) : (
+            <>
+              <div className="flex flex-col items-center justify-center py-10 px-6 z-10 text-center">
+                <div
+                  className={`p-4 rounded-full mb-4 transition-colors ${
+                    isDragging ? "bg-primary/15" : "bg-muted/60"
+                  }`}
+                >
+                  <UploadCloud
+                    className={`w-9 h-9 transition-colors ${
+                      isDragging ? "text-primary" : "text-muted-foreground/60"
+                    }`}
+                  />
+                </div>
+                <p className="text-sm font-medium text-foreground/80">
+                  <span className="text-primary font-semibold">{t("guest.clickToUpload")}</span>{" "}
+                  {t("guest.orDragAndDrop")}
+                </p>
+                <p className="text-xs text-muted-foreground mt-1.5">{t("guest.supportedFiles")}</p>
+              </div>
+              <input
+                type="file"
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20"
+                multiple
+                onChange={handleFileInput}
+                disabled={uploading}
+                accept="image/*,video/*,.heic,.heif,.avif,.mov,.mp4,.m4v,.3gp,.webm"
+              />
+            </>
+          )}
+        </motion.div>
+      )}
 
+      {/* Selected Files Card: displayed immediately when photos/videos are chosen */}
       <AnimatePresence>
         {files.length > 0 && (
           <motion.div
@@ -713,11 +719,11 @@ export default function UploadZone({ eventId }: UploadZoneProps) {
             exit={{ opacity: 0, y: 8 }}
             className="bg-card border border-border/60 rounded-xl overflow-hidden shadow-sm"
           >
-            {/* Prominent, large full-width upload CTA button moved to the top of the box */}
+            {/* Prominent, large full-width upload CTA button placed right at the very top */}
             {!uploading && (
               <div
                 ref={uploadButtonRef}
-                className="p-3 sm:p-4 bg-muted/20 border-b border-border/50 flex flex-col gap-2"
+                className="p-3 sm:p-4 bg-muted/20 border-b border-border/50 flex flex-col gap-2.5"
               >
                 <Button
                   size="lg"
@@ -727,7 +733,32 @@ export default function UploadZone({ eventId }: UploadZoneProps) {
                   <UploadCloud className="w-5 h-5" />
                   {getUploadButtonLabel()}
                 </Button>
-                <div className="flex justify-between items-center text-xs text-muted-foreground px-1">
+
+                {/* Compressed "add more" box replacing the bulky dropzone */}
+                <div
+                  className={`relative flex items-center justify-center gap-2 w-full py-2.5 px-3 rounded-lg border border-dashed transition-all cursor-pointer ${
+                    isDragging
+                      ? "border-primary bg-primary/10 text-primary"
+                      : "border-border/70 bg-background/60 hover:border-primary/50 hover:bg-muted/40 text-muted-foreground hover:text-foreground"
+                  }`}
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onDrop={handleDrop}
+                >
+                  <Plus className="w-3.5 h-3.5 text-primary shrink-0" />
+                  <span className="text-xs font-medium">
+                    {t("guest.addMorePhotos")}
+                  </span>
+                  <input
+                    type="file"
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                    multiple
+                    onChange={handleFileInput}
+                    accept="image/*,video/*,.heic,.heif,.avif,.mov,.mp4,.m4v,.3gp,.webm"
+                  />
+                </div>
+
+                <div className="flex justify-between items-center text-xs text-muted-foreground px-1 pt-0.5">
                   <span className="font-medium flex items-center gap-1.5">
                     <ImageIcon className="w-3.5 h-3.5 text-primary" />
                     {files.length}{" "}

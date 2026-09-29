@@ -150,7 +150,8 @@
     "slowConnection": "Your connection seems slow. Files are still uploading — please keep this page open.",
     "preparing": "Preparing files for a faster upload…",
     "failedSome": "{count} failed to upload. Listed below — tap Upload to try again.",
-    "failedConnection": "Server unreachable. Check your mobile data or Wi-Fi and tap Upload."
+    "failedConnection": "Server unreachable. Check your mobile data or Wi-Fi and tap Upload.",
+    "addMorePhotos": "Add more photos or videos"
   },
   "editEvent": {
     "title": "Edit Event",

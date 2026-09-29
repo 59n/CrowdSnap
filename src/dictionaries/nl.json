@@ -144,7 +144,8 @@
     "slowConnection": "Je verbinding lijkt traag. Bestanden worden nog steeds geüpload — sluit deze pagina niet.",
     "preparing": "Bestanden voorbereiden voor een snellere upload…",
     "failedSome": "{count} niet geüpload. Ze staan hieronder — tik op Uploaden om het opnieuw te proberen.",
-    "failedConnection": "Server niet bereikbaar. Controleer je mobiele data en tik op Uploaden."
+    "failedConnection": "Server niet bereikbaar. Controleer je mobiele data en tik op Uploaden.",
+    "addMorePhotos": "Meer foto's of video's toevoegen"
   },
   "editEvent": {
     "title": "Event Bewerken",

@@ -144,7 +144,8 @@
     "uploadNowSingleVideo": "Enviar 1 vídeo agora",
     "uploadNowMixed": "Enviar {count} fotos e vídeos agora",
     "uploadNowFiles": "Enviar {count} arquivos agora",
-    "uploadNowSingleFile": "Enviar 1 arquivo agora"
+    "uploadNowSingleFile": "Enviar 1 arquivo agora",
+    "addMorePhotos": "Adicionar mais fotos ou vídeos"
   },
   "editEvent": {
     "title": "Editar Evento",

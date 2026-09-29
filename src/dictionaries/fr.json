@@ -144,7 +144,8 @@
     "uploadNowSingleVideo": "Télécharger 1 vidéo maintenant",
     "uploadNowMixed": "Télécharger {count} photos et vidéos maintenant",
     "uploadNowFiles": "Télécharger {count} fichiers maintenant",
-    "uploadNowSingleFile": "Télécharger 1 fichier maintenant"
+    "uploadNowSingleFile": "Télécharger 1 fichier maintenant",
+    "addMorePhotos": "Ajouter d'autres photos ou vidéos"
   },
   "editEvent": {
     "title": "Modifier Événement",
