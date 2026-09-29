@@ -20,7 +20,8 @@
     "guestsBlocked": "Guests blocked",
     "uploads": "uploads",
     "editDetails": "Edit Details",
-    "telemetry": "Telemetry & Storage"
+    "telemetry": "Telemetry & Storage",
+    "testingModeOn": "Limits off"
   },
   "settings": {
     "nav": "Settings",
@@ -46,7 +47,12 @@
     "french": "French",
     "german": "German",
     "italian": "Italian",
-    "portuguese": "Portuguese"
+    "portuguese": "Portuguese",
+    "optional": "optional",
+    "defaultLanguage": "Default guest language",
+    "maxFileSize": "Max file size (MB)",
+    "maxFileSizeHint": "Allowed between {min} MB and {max} MB per photo or video.",
+    "submit": "Create event"
   },
   "eventDetail": {
     "guestView": "Guest View",
@@ -140,7 +146,11 @@
     "uploadNowSingleVideo": "Upload 1 Video Now",
     "uploadNowMixed": "Upload {count} Photos & Videos Now",
     "uploadNowFiles": "Upload {count} Files Now",
-    "uploadNowSingleFile": "Upload 1 File Now"
+    "uploadNowSingleFile": "Upload 1 File Now",
+    "slowConnection": "Your connection seems slow. Files are still uploading — please keep this page open.",
+    "preparing": "Preparing files for a faster upload…",
+    "failedSome": "{count} failed to upload. Listed below — tap Upload to try again.",
+    "failedConnection": "Server unreachable. Check your mobile data or Wi-Fi and tap Upload."
   },
   "editEvent": {
     "title": "Edit Event",
@@ -165,7 +175,9 @@
     "success": "Event updated successfully",
     "error": "Error updating event",
     "endBeforeStart": "End date cannot be before the event date.",
-    "detailsSavedMediaFailed": "Details saved, but an image update failed. Try the cover/banner again."
+    "detailsSavedMediaFailed": "Details saved, but an image update failed. Try the cover/banner again.",
+    "testingMode": "Disable upload limits (testing)",
+    "testingModeDesc": "Bypasses per-network and per-event upload rate limits for this event only. Login limits, file validation, and admin auth remain enforced. Turn off before guests arrive."
   },
   "qrExport": {
     "style": "Style",

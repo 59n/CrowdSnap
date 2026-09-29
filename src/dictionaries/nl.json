@@ -19,7 +19,8 @@
     "allEvents": "Alles",
     "noEventsInFilter": "No events in this filter.",
     "showAllEvents": "Show all events",
-    "guestsBlocked": "Guests blocked"
+    "guestsBlocked": "Guests blocked",
+    "testingModeOn": "Limits uit"
   },
   "createEvent": {
     "title": "Nieuw Evenement Aanmaken",
@@ -40,7 +41,12 @@
     "french": "Frans",
     "german": "Duits",
     "italian": "Italiaans",
-    "portuguese": "Portugees"
+    "portuguese": "Portugees",
+    "optional": "optioneel",
+    "defaultLanguage": "Standaard taal voor gasten",
+    "maxFileSize": "Max. bestandsgrootte (MB)",
+    "maxFileSizeHint": "Toegestaan tussen {min} MB en {max} MB per foto of video.",
+    "submit": "Evenement aanmaken"
   },
   "eventDetail": {
     "guestView": "Gastenweergave",
@@ -134,7 +140,11 @@
     "uploadNowSingleVideo": "Nu 1 video uploaden",
     "uploadNowMixed": "Nu {count} foto's & video's uploaden",
     "uploadNowFiles": "Nu {count} bestanden uploaden",
-    "uploadNowSingleFile": "Nu 1 bestand uploaden"
+    "uploadNowSingleFile": "Nu 1 bestand uploaden",
+    "slowConnection": "Je verbinding lijkt traag. Bestanden worden nog steeds geüpload — sluit deze pagina niet.",
+    "preparing": "Bestanden voorbereiden voor een snellere upload…",
+    "failedSome": "{count} niet geüpload. Ze staan hieronder — tik op Uploaden om het opnieuw te proberen.",
+    "failedConnection": "Server niet bereikbaar. Controleer je mobiele data en tik op Uploaden."
   },
   "editEvent": {
     "title": "Event Bewerken",
@@ -159,7 +169,9 @@
     "removeHeroBanner": "Remove current hero background",
     "removeCoverIcon": "Remove current cover icon",
     "endBeforeStart": "End date cannot be before the event date.",
-    "detailsSavedMediaFailed": "Details saved, but an image update failed. Try the cover/banner again."
+    "detailsSavedMediaFailed": "Details saved, but an image update failed. Try the cover/banner again.",
+    "testingMode": "Uploadlimieten uitschakelen (test)",
+    "testingModeDesc": "Slaat de uploadlimieten per netwerk en per evenement over, alleen voor dit evenement. Inloglimieten, bestandscontrole en admin-toegang blijven actief. Schakel weer uit voor de gasten arriveren."
   },
   "qrExport": {
     "style": "Stijl",

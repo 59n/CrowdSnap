@@ -41,7 +41,12 @@
     "cancel": "Annulla",
     "creating": "Creazione...",
     "success": "Evento creato con successo.",
-    "error": "Errore nella creazione dell'evento."
+    "error": "Errore nella creazione dell'evento.",
+    "optional": "opzionale",
+    "defaultLanguage": "Lingua predefinita per gli ospiti",
+    "maxFileSize": "Dimensione massima file (MB)",
+    "maxFileSizeHint": "Consentito tra {min} MB e {max} MB per foto o video.",
+    "submit": "Crea evento"
   },
   "eventDetail": {
     "guestView": "Vista Ospite",

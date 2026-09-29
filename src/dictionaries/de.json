@@ -41,7 +41,12 @@
     "cancel": "Abbrechen",
     "creating": "Erstellen...",
     "success": "Event erfolgreich erstellt.",
-    "error": "Fehler beim Erstellen."
+    "error": "Fehler beim Erstellen.",
+    "optional": "optional",
+    "defaultLanguage": "Standardsprache für Gäste",
+    "maxFileSize": "Maximale Dateigröße (MB)",
+    "maxFileSizeHint": "Erlaubt zwischen {min} MB und {max} MB pro Foto oder Video.",
+    "submit": "Event erstellen"
   },
   "eventDetail": {
     "guestView": "Gästeansicht",

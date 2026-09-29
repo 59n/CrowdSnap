@@ -41,7 +41,12 @@
     "cancel": "Cancelar",
     "creating": "Criando...",
     "success": "Evento criado com sucesso.",
-    "error": "Erro ao criar o evento."
+    "error": "Erro ao criar o evento.",
+    "optional": "opcional",
+    "defaultLanguage": "Idioma padrão para convidados",
+    "maxFileSize": "Tamanho máx. do ficheiro (MB)",
+    "maxFileSizeHint": "Permitido entre {min} MB e {max} MB por foto ou vídeo.",
+    "submit": "Criar evento"
   },
   "eventDetail": {
     "guestView": "Visão do Convidado",
