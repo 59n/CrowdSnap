@@ -12,10 +12,10 @@ export type ReplicaMountState = 'unconfigured' | 'ok' | 'unplugged' | 'bind_stal
 export function replicaVolumeRoot(replicaPath: string): string | null {
   const trimmed = (replicaPath || '').trim();
   if (!trimmed) return null;
-  // /Volumes/<name>/... — name may contain spaces ("Backup SSD")
-  const m = trimmed.match(/^\/Volumes\/([^/]+)/);
+  // /Volumes/<name>, /mnt/<name>, or /media/<name> — name may contain spaces ("Backup SSD")
+  const m = trimmed.match(/^(\/(?:Volumes|mnt|media)\/[^/]+)/);
   if (!m) return null;
-  return `/Volumes/${m[1]}`;
+  return m[1];
 }
 
 export function shouldRecreateSsdBind(opts: {

@@ -54,6 +54,18 @@ export async function GET() {
     } | null = null;
 
     const replicaPath = getReplicaPath();
+    if (replicaPath) {
+      notifyCritical({
+        key: "ssd.unplugged",
+        title: "Backup SSD unreachable",
+        message: replicaReady
+          ? "Backup SSD replica is connected and writable."
+          : `Backup SSD replica at ${replicaPath} cannot be reached by Docker.`,
+        level: "critical",
+        threadId: "crowdsnap-ssd",
+        recovered: replicaReady,
+      });
+    }
     if (replicaPath && replicaReady) {
       const rStats = getDiskStats(replicaPath);
       if (rStats) {

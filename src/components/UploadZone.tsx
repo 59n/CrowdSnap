@@ -333,6 +333,24 @@ export default function UploadZone({ eventId }: UploadZoneProps) {
     }, 5_000);
     return () => window.clearInterval(id);
   }, [uploading, progress, files]);
+  const uploadButtonRef = useRef<HTMLDivElement | null>(null);
+
+  // If selected files cause the upload CTA button to extend beyond the viewport,
+  // automatically scroll it down into view so guests immediately see the action button.
+  useEffect(() => {
+    if (files.length > 0 && !uploading) {
+      const timer = window.setTimeout(() => {
+        const el = uploadButtonRef.current;
+        if (!el) return;
+        const rect = el.getBoundingClientRect();
+        if (rect.bottom > window.innerHeight) {
+          el.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        }
+      }, 120);
+      return () => window.clearTimeout(timer);
+    }
+  }, [files.length, uploading]);
+
   const deviceIdRef = useRef<string>("");
 
   useEffect(() => {
@@ -671,9 +689,9 @@ export default function UploadZone({ eventId }: UploadZoneProps) {
                 {files.length}{" "}
                 {files.length !== 1 ? t("guest.filesSelected") : t("guest.fileSelected")}
               </span>
-              <Button size="sm" onClick={uploadFiles} disabled={uploading} className="h-8 text-xs">
-                {uploading ? t("guest.uploading") : t("guest.uploadAll")}
-              </Button>
+              <span className="text-xs text-muted-foreground font-mono">
+                {formattedTotalSize}
+              </span>
             </div>
 
             {failedNotice && !uploading && (
@@ -745,7 +763,10 @@ export default function UploadZone({ eventId }: UploadZoneProps) {
 
             {/* Prominent, large full-width upload CTA button */}
             {!uploading && (
-              <div className="p-3 sm:p-4 bg-muted/20 border-t border-border/50 flex flex-col gap-2">
+              <div
+                ref={uploadButtonRef}
+                className="p-3 sm:p-4 bg-muted/20 border-t border-border/50 flex flex-col gap-2"
+              >
                 <Button
                   size="lg"
                   onClick={uploadFiles}

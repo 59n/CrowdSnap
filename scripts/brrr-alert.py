@@ -276,6 +276,7 @@ def send_one(root: str, alert: dict, *, force: bool = False) -> str:
         headers={
             "Authorization": f"Bearer {secret}",
             "Content-Type": "application/json",
+            "User-Agent": "CrowdSnap/1.0 (+https://foto.thenas.us)",
         },
     )
     try:

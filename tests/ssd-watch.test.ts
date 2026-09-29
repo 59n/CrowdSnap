@@ -12,6 +12,8 @@ describe('replicaVolumeRoot', () => {
     assert.equal(replicaVolumeRoot('/Volumes/1TB/wedding'), '/Volumes/1TB');
     assert.equal(replicaVolumeRoot('/Volumes/1TB'), '/Volumes/1TB');
     assert.equal(replicaVolumeRoot('/Volumes/Backup SSD/wedding'), '/Volumes/Backup SSD');
+    assert.equal(replicaVolumeRoot('/mnt/wedding-ssd/wedding'), '/mnt/wedding-ssd');
+    assert.equal(replicaVolumeRoot('/media/usb/wedding'), '/media/usb');
   });
 
   it('returns null for empty or non-volume paths', () => {

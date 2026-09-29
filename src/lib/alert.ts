@@ -126,6 +126,7 @@ export async function sendCriticalAlert(
       headers: {
         Authorization: `Bearer ${parsed.secret}`,
         'Content-Type': 'application/json',
+        'User-Agent': 'CrowdSnap/1.0 (+https://foto.thenas.us)',
       },
       body: JSON.stringify(body),
     });

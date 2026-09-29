@@ -98,4 +98,29 @@ with open(sys.argv[1], 'w') as f:
     f.write('\n')
 PY
   pct push "$CT_ID" "$STATUS" "$ROOT/data/ssd-status.json" >/dev/null
+
+  # Evaluate whether recreate failed
+  recreate_failed=false
+  if [ "$action" = "recreate" ] && [ "$container_reachable" = false ]; then
+    recreate_failed=true
+  fi
+
+  # Disk space metrics
+  ct_free=$(pct exec "$CT_ID" -- df -kP "$ROOT/storage" 2>/dev/null | awk 'NR==2 {printf "%.2f", $4/1024/1024}' || echo "")
+  ssd_free=""
+  if [ "$host_mounted" = true ]; then
+    ssd_free=$(df -kP "$MOUNT" 2>/dev/null | awk 'NR==2 {printf "%.2f", $4/1024/1024}' || echo "")
+  fi
+
+  # Host evaluation and brrr push alerts
+  pct exec "$CT_ID" -- python3 "$ROOT/scripts/brrr-alert.py" eval-host \
+    --root "$ROOT" \
+    --container-running "$container_running" \
+    --recreate-failed "$recreate_failed" \
+    ${ct_free:+--mac-free "$ct_free"} \
+    ${ssd_free:+--ssd-free "$ssd_free"} \
+    --host-mounted "$host_mounted" \
+    --container-reachable "$container_reachable" \
+    --replica-configured true \
+    >/dev/null 2>&1 || true
 fi
