@@ -19,7 +19,8 @@
     "allEvents": "Tutti",
     "noEventsInFilter": "No events in this filter.",
     "showAllEvents": "Show all events",
-    "guestsBlocked": "Guests blocked"
+    "guestsBlocked": "Guests blocked",
+    "testingModeOn": "Limiti disattivati"
   },
   "createEvent": {
     "title": "Crea Nuovo Evento",
@@ -124,7 +125,11 @@
     "rateLimitedDesc": "Stai caricando molto velocemente. Riproveremo tra circa {seconds} secondi.",
     "rateLimitedGiveUp": "Alcune foto non sono state caricate. Attendi circa {seconds} secondi e riprova.",
     "rateLimitedWaiting": "Troppo veloce — attesa di ~{seconds}s poi continuiamo automaticamente…",
-    "partialUpload": "Caricate {ok}, {fail} ancora da fare — riprova o attendi il retry automatico."
+    "partialUpload": "Caricate {ok}, {fail} ancora da fare — riprova o attendi il retry automatico.",
+    "slowConnection": "La connessione sembra lenta. I file si stanno ancora caricando — tieni aperta questa pagina.",
+    "preparing": "Preparazione dei file per un invio più veloce…",
+    "failedSome": "{count} non caricate. Restano nell'elenco — tocca Carica per riprovare.",
+    "failedConnection": "Server non raggiungibile. Controlla i dati mobili, poi tocca Carica."
   },
   "editEvent": {
     "title": "Modifica Evento",
@@ -142,6 +147,8 @@
     "slugTaken": "Questo URL è già utilizzato da un altro evento.",
     "guestGallery": "Galleria ospiti",
     "guestGalleryDesc": "Consenti agli ospiti di vedere ed eliminare i propri caricamenti.",
+    "testingMode": "Disattiva i limiti di caricamento (test)",
+    "testingModeDesc": "Salta i limiti di caricamento per rete e per evento, solo per questo evento. Login, controllo file e accesso admin restano attivi. Disattivalo prima dell’arrivo degli ospiti.",
     "success": "Evento aggiornato con successo",
     "error": "Errore durante l'aggiornamento dell'evento",
     "heroBanner": "Hero background (optional)",

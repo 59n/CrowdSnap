@@ -9,13 +9,15 @@ const connectionString = process.env.DATABASE_URL!
  * Next.js process might still hold in a cached PrismaClient (HMR).
  * That forces a fresh client instead of serving a stale DMMF.
  */
-const PRISMA_SCHEMA_VERSION = 'event-archivedAt-v1'
+const PRISMA_SCHEMA_VERSION = 'event-relaxSecurity-v1'
+
+const poolMax = Math.max(5, parseInt(process.env.PG_POOL_MAX || '50', 10) || 50);
 
 const prismaClientSingleton = () => {
-  const pool = new Pool({ connectionString, max: 15 })
-  const adapter = new PrismaPg(pool)
-  return new PrismaClient({ adapter })
-}
+  const pool = new Pool({ connectionString, max: poolMax });
+  const adapter = new PrismaPg(pool);
+  return new PrismaClient({ adapter });
+};
 
 declare const globalThis: {
   prismaGlobal: ReturnType<typeof prismaClientSingleton> | undefined

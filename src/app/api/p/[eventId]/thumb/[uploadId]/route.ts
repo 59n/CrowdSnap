@@ -1,17 +1,19 @@
+import { telemetry } from '@/lib/telemetry';
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/db';
 import fs from 'fs';
 import path from 'path';
-import sharp from 'sharp';
-import { Readable } from 'stream';
-import { getPrimaryPath, resolveReadPath, scheduleMirror, isSafeEventId } from '@/lib/storage';
+import { webStreamFromNode } from '@/lib/web-stream';
+import { getPrimaryPath, resolveReadPath, isSafeEventId } from '@/lib/storage';
+import { queueImageThumb } from '@/lib/thumb-queue';
 import { expirePastEvents, isEventOpenForGuests } from '@/lib/events';
 import { isSafeId } from '@/lib/path-safe';
 
 async function streamJpeg(filePath: string) {
   const nodeStream = fs.createReadStream(filePath);
   const { size } = fs.statSync(filePath);
-  const webStream = Readable.toWeb(nodeStream);
+  telemetry.recordOutbound(size);
+  const webStream = webStreamFromNode(nodeStream);
   return new NextResponse(webStream as unknown as BodyInit, {
     headers: {
       'Content-Type': 'image/jpeg',
@@ -57,18 +59,13 @@ export async function GET(
   }
 
   if (upload.mimeType.startsWith('image/') && effectiveOriginal) {
-    try {
-      fs.mkdirSync(path.dirname(thumbPrimary), { recursive: true });
-      await sharp(effectiveOriginal)
-        .rotate()
-        .resize({ width: 400, withoutEnlargement: true })
-        .jpeg({ quality: 80 })
-        .toFile(thumbPrimary);
-      scheduleMirror(thumbPrimary, `events/${eventId}/thumbs/${uploadId}.jpg`, false);
-      return streamJpeg(thumbPrimary);
-    } catch {
-      return new NextResponse('No thumbnail', { status: 404 });
-    }
+    fs.mkdirSync(path.dirname(thumbPrimary), { recursive: true });
+    queueImageThumb({
+      originalPath: effectiveOriginal,
+      thumbPath: thumbPrimary,
+      mirrorRelativePath: `events/${eventId}/thumbs/${uploadId}.jpg`,
+      isOverflow: false,
+    });
   }
 
   return new NextResponse('No thumbnail', { status: 404 });

@@ -10,6 +10,8 @@
     "start:prod": "NODE_ENV=production next start -H 0.0.0.0 -p ${PORT:-3001}",
     "start:prod:bg": "bash scripts/prod-start.sh",
     "prod:stop": "bash scripts/prod-stop.sh",
+    "ssd:watch": "bash scripts/ssd-watch.sh",
+    "ssd:watch:install": "bash scripts/install-ssd-watch.sh",
     "prod": "docker compose up -d db && npm run build && npm run start:prod:bg",
     "prod:fg": "docker compose up -d db && npm run build && npm run start:prod",
     "stress": "bash scripts/stress-test.sh",

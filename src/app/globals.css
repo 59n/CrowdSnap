@@ -124,3 +124,83 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Guest hero: phones hold the tall crop, then ease up to the compact layout.
+   Compact copy offset is extra-low because the cover circle is optional. */
+@keyframes guest-hero-settle {
+  0%, 42% { height: 80dvh; }
+  100% { height: min(56vh, 460px); }
+}
+@keyframes guest-hero-copy-settle {
+  0%, 42% { margin-top: min(46dvh, 420px); }
+  100% { margin-top: min(32vh, 260px); }
+}
+@keyframes guest-hero-closed-settle {
+  0%, 42% { padding-top: min(46dvh, 420px); }
+  100% { padding-top: min(32vh, 260px); }
+}
+@keyframes guest-hero-ken {
+  0%, 42% { transform: scale(1.08); }
+  100% { transform: scale(1); }
+}
+
+@layer components {
+  .guest-hero-banner {
+    height: 80dvh;
+  }
+  .guest-hero-copy {
+    margin-top: min(46dvh, 420px);
+  }
+  .guest-hero-closed-copy {
+    padding-top: min(46dvh, 420px);
+  }
+
+  @media (min-width: 768px) {
+    .guest-hero-banner {
+      height: min(56vh, 460px);
+    }
+    .guest-hero-copy {
+      margin-top: min(32vh, 260px);
+    }
+    .guest-hero-closed-copy {
+      padding-top: min(32vh, 260px);
+    }
+  }
+
+  @media (max-width: 767.98px) {
+    @media (prefers-reduced-motion: reduce) {
+      .guest-hero-banner {
+        height: min(56vh, 460px);
+      }
+      .guest-hero-copy {
+        margin-top: min(32vh, 260px);
+      }
+      .guest-hero-closed-copy {
+        padding-top: min(32vh, 260px);
+      }
+    }
+    @media (prefers-reduced-motion: no-preference) {
+      [data-hero-intro="play"] .guest-hero-banner {
+        animation: guest-hero-settle 2.7s cubic-bezier(0.16, 1, 0.3, 1) both;
+      }
+      [data-hero-intro="play"] .guest-hero-copy {
+        animation: guest-hero-copy-settle 2.7s cubic-bezier(0.16, 1, 0.3, 1) both;
+      }
+      [data-hero-intro="play"] .guest-hero-closed-copy {
+        animation: guest-hero-closed-settle 2.7s cubic-bezier(0.16, 1, 0.3, 1) both;
+      }
+      [data-hero-intro="play"] .guest-hero-img {
+        animation: guest-hero-ken 2.7s cubic-bezier(0.16, 1, 0.3, 1) both;
+      }
+      [data-hero-intro="skip"] .guest-hero-banner {
+        height: min(56vh, 460px);
+      }
+      [data-hero-intro="skip"] .guest-hero-copy {
+        margin-top: min(32vh, 260px);
+      }
+      [data-hero-intro="skip"] .guest-hero-closed-copy {
+        padding-top: min(32vh, 260px);
+      }
+    }
+  }
+}

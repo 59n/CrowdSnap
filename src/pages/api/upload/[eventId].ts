@@ -1,25 +1,27 @@
+import { telemetry } from '@/lib/telemetry';
 import { NextApiRequest, NextApiResponse } from 'next';
 import busboy from 'busboy';
 import fs from 'fs';
 import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import prisma from '@/lib/db';
-import sharp from 'sharp';
 import {
   initEventStorage,
   getWriteRoot,
   scheduleMirror,
   isSafeEventId,
   hasStorageRoom,
+  getDiskStats,
+  getPrimaryPath,
+  getReplicaPath,
 } from '@/lib/storage';
 import { expirePastEvents, isEventOpenForGuests } from '@/lib/events';
-import {
-  checkRateLimit,
-  rateLimitKey,
-  UPLOAD_IP_LIMIT,
-  UPLOAD_EVENT_LIMIT,
-} from '@/lib/rate-limit';
+import { enforceUploadRateLimits } from '@/lib/rate-limit';
 import { resolveUploadType, clampMaxFileSizeMB } from '@/lib/file-type';
+import { notifyCritical } from '@/lib/alert';
+import { queueImageThumb } from '@/lib/thumb-queue';
+import { handleChunkUpload } from '@/lib/upload-chunks';
+import { debugLog } from '@/lib/debug-log';
 
 export const config = {
   api: {
@@ -44,38 +46,56 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   const ip = clientIp(req);
-  const ipLimit = checkRateLimit(
-    rateLimitKey('upload', 'ip', ip),
-    UPLOAD_IP_LIMIT.max,
-    UPLOAD_IP_LIMIT.windowMs
-  );
-  if (!ipLimit.allowed) {
-    res.setHeader('Retry-After', String(Math.ceil(ipLimit.retryAfterMs / 1000)));
-    return res.status(429).json({ error: 'Too many uploads from this network' });
-  }
-  const eventLimit = checkRateLimit(
-    rateLimitKey('upload', 'event', eventId),
-    UPLOAD_EVENT_LIMIT.max,
-    UPLOAD_EVENT_LIMIT.windowMs
-  );
-  if (!eventLimit.allowed) {
-    res.setHeader('Retry-After', String(Math.ceil(eventLimit.retryAfterMs / 1000)));
-    return res.status(429).json({ error: 'Too many uploads for this event' });
-  }
-
   const deviceId = (req.headers['x-device-id'] as string) || null;
+  const chunkIndex = req.headers['x-chunk-index'];
+  const isFollowUpChunk = chunkIndex !== undefined && String(chunkIndex) !== '0';
 
   await expirePastEvents();
 
   const event = await prisma.event.findUnique({ where: { id: eventId } });
+  // Unknown events still count against the IP limit. Testing mode on a real
+  // event skips per-IP and per-event upload limits without touching the buckets.
+  // Later slices of one file are not new uploads.
+  const blocked = isFollowUpChunk
+    ? null
+    : enforceUploadRateLimits({
+        relaxSecurity: event ? (event.relaxSecurity ?? true) : true,
+        ip,
+        eventId,
+      });
+  if (blocked) {
+    debugLog('warn', 'upload.rate_limited', {
+      eventId,
+      scope: blocked.scope,
+      retryAfterMs: blocked.retryAfterMs,
+    });
+    res.setHeader('Retry-After', String(Math.ceil(blocked.retryAfterMs / 1000)));
+    return res.status(429).json({ error: blocked.error });
+  }
   if (!event) {
     return res.status(404).json({ error: 'Event not found' });
   }
   if (!isEventOpenForGuests(event)) {
+    debugLog('warn', 'upload.closed', { eventId });
     return res.status(403).json({ error: 'Event is closed for uploads' });
   }
 
   if (!hasStorageRoom()) {
+    const primary = getDiskStats(getPrimaryPath());
+    const replicaRoot = getReplicaPath();
+    const replica = replicaRoot ? getDiskStats(replicaRoot) : null;
+    debugLog('error', 'upload.storage_full', {
+      eventId,
+      primaryFreeGB: primary ? Math.round(primary.freeGB) : -1,
+      replicaFreeGB: replica ? Math.round(replica.freeGB) : -1,
+    });
+    notifyCritical({
+      key: 'storage.full',
+      title: 'Storage full',
+      message: 'Guest uploads are blocked — Mac and SSD are both out of space.',
+      level: 'critical',
+      threadId: 'crowdsnap-storage',
+    });
     return res.status(507).json({ error: 'Storage is full on all volumes' });
   }
 
@@ -84,10 +104,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   initEventStorage(eventId);
 
+  if (req.headers['x-chunk-index'] !== undefined) {
+    await handleChunkUpload(req, res, eventId, deviceId, maxFileSize);
+    return;
+  }
+
   const bb = busboy({ headers: req.headers, limits: { fileSize: maxFileSize, files: 1 } });
 
   return new Promise<void>((resolve) => {
-    let asyncTasks: Promise<unknown>[] = [];
+    const asyncTasks: Promise<unknown>[] = [];
     let hasError = false;
 
     bb.on('file', (_name, file, info) => {
@@ -116,6 +141,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         file.on('data', (chunk: Buffer) => {
           if (hasError) return;
           bytesReceived += chunk.length;
+          telemetry.recordInbound(chunk.length, ip);
 
           if (!validated) {
             head = head ? Buffer.concat([head, chunk]) : Buffer.from(chunk);
@@ -145,7 +171,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             writeStream.write(head);
             head = null;
 
-            writeStream.on('error', () => fail(500, 'Write failed'));
+            writeStream.on('error', () => {
+              notifyCritical({
+                key: 'upload.write_failed',
+                title: 'Upload write failed',
+                message: 'A guest photo could not be written to disk.',
+                level: 'critical',
+                threadId: 'crowdsnap-storage',
+              });
+              fail(500, 'Write failed');
+            });
           } else if (writeStream) {
             writeStream.write(chunk);
           }
@@ -197,23 +232,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           const thumbsDir = path.join(path.dirname(path.dirname(originalPath)), 'thumbs');
           const metaDir = path.join(path.dirname(path.dirname(originalPath)), 'metadata');
 
-          // Thumbnail from file path — no full-buffer load of original
+          // Thumbnail runs after the response so a burst of large photos
+          // does not block the guest page. At most two jobs at a time.
           if (finalMime.startsWith('image/')) {
-            try {
-              const thumbPath = path.join(thumbsDir, `${uuid}.jpg`);
-              await sharp(originalPath)
-                .rotate()
-                .resize({ width: 400, withoutEnlargement: true })
-                .jpeg({ quality: 80 })
-                .toFile(thumbPath);
-              // Async mirror thumb (best-effort; does not block response)
-              scheduleMirror(thumbPath, `events/${eventId}/thumbs/${uuid}.jpg`, isOverflow);
-            } catch (e) {
-              console.warn(
-                `[Warning] Thumbnail generation failed for ${filename}:`,
-                (e as Error).message
-              );
-            }
+            queueImageThumb({
+              originalPath,
+              thumbPath: path.join(thumbsDir, `${uuid}.jpg`),
+              mirrorRelativePath: `events/${eventId}/thumbs/${uuid}.jpg`,
+              isOverflow,
+            });
           }
 
           const metaPath = path.join(metaDir, `${uuid}.json`);
@@ -242,9 +269,32 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             scheduleMirror(originalPath, relativeOriginal, isOverflow);
             scheduleMirror(metaPath, `events/${eventId}/metadata/${uuid}.json`, isOverflow);
 
+            telemetry.recordUpload({
+              id: record.id,
+              eventId,
+              eventName: event?.name,
+              fileName: filename,
+              sizeBytes: bytesReceived,
+              mimeType: finalMime,
+              ip,
+              userAgent: req.headers['user-agent'] as string | undefined,
+            });
+
+            debugLog('info', 'upload.saved', {
+              eventId,
+              name: filename,
+              mime: finalMime,
+              size: bytesReceived,
+              chunked: false,
+            });
             fileResolve(record);
           } catch (dbError) {
             console.error('DB error:', dbError);
+            debugLog('error', 'upload.db_failed', {
+              eventId,
+              name: filename,
+              message: dbError instanceof Error ? dbError.message : 'db error',
+            });
             // Cleanup orphan files on disk — client must not see success
             try {
               if (fs.existsSync(originalPath)) fs.unlinkSync(originalPath);
@@ -255,6 +305,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
               /* ignore */
             }
             hasError = true;
+            notifyCritical({
+              key: 'upload.db_failed',
+              title: 'Upload database failed',
+              message: 'A guest file was written but could not be saved to the database.',
+              level: 'critical',
+              threadId: 'crowdsnap-web',
+            });
             if (!res.headersSent) {
               res.status(500).json({ error: 'Failed to save upload' });
             }
@@ -268,6 +325,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     bb.on('error', (err) => {
       console.error('Busboy error:', err);
+      debugLog('error', 'upload.stream_failed', {
+        eventId,
+        message: err instanceof Error ? err.message : String(err),
+      });
+      notifyCritical({
+        key: 'upload.stream_failed',
+        title: 'Upload streaming failed',
+        message: 'A guest upload stream failed before the file was saved.',
+        level: 'critical',
+        threadId: 'crowdsnap-web',
+      });
       if (!res.headersSent) res.status(500).json({ error: 'Upload streaming failed' });
       resolve();
     });
@@ -286,6 +354,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }>;
         if (!res.headersSent) {
           if (successfulUploads.length === 0) {
+            debugLog('warn', 'upload.empty', { eventId });
             res.status(400).json({ error: 'No files uploaded', success: false, uploaded: 0 });
           } else {
             res.status(200).json({

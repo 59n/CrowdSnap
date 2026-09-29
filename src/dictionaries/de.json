@@ -19,7 +19,8 @@
     "allEvents": "Alle",
     "noEventsInFilter": "No events in this filter.",
     "showAllEvents": "Show all events",
-    "guestsBlocked": "Guests blocked"
+    "guestsBlocked": "Guests blocked",
+    "testingModeOn": "Limits aus"
   },
   "createEvent": {
     "title": "Neues Event erstellen",
@@ -124,7 +125,11 @@
     "rateLimitedDesc": "Du lädst sehr schnell hoch. Wir versuchen es in etwa {seconds} Sekunden erneut.",
     "rateLimitedGiveUp": "Einige Fotos konnten noch nicht hochgeladen werden. Bitte warte etwa {seconds} Sekunden und versuche es erneut.",
     "rateLimitedWaiting": "Zu schnell — warte ~{seconds}s, dann geht es automatisch weiter…",
-    "partialUpload": "{ok} hochgeladen, {fail} noch offen — erneut tippen oder auf Auto-Retry warten."
+    "partialUpload": "{ok} hochgeladen, {fail} noch offen — erneut tippen oder auf Auto-Retry warten.",
+    "slowConnection": "Deine Verbindung wirkt langsam. Dateien werden noch hochgeladen — lass diese Seite offen.",
+    "preparing": "Dateien werden für einen schnelleren Upload vorbereitet…",
+    "failedSome": "{count} nicht hochgeladen. Sie stehen unten — tippe auf Hochladen, um es erneut zu versuchen.",
+    "failedConnection": "Server nicht erreichbar. Prüfe deine mobilen Daten und tippe dann auf Hochladen."
   },
   "editEvent": {
     "title": "Event bearbeiten",
@@ -142,6 +147,8 @@
     "slugTaken": "Diese URL wird bereits von einem anderen Event verwendet.",
     "guestGallery": "Gäste-Galerie",
     "guestGalleryDesc": "Erlaubt Gästen, ihre eigenen Uploads zu sehen und zu löschen.",
+    "testingMode": "Upload-Limits abschalten (Test)",
+    "testingModeDesc": "Überspringt die Upload-Limits pro Netzwerk und pro Event nur für dieses Event. Login-Limits, Dateiprüfung und Admin-Login bleiben an. Vor den Gästen wieder ausschalten.",
     "success": "Event erfolgreich aktualisiert",
     "error": "Fehler beim Aktualisieren des Events",
     "heroBanner": "Hero background (optional)",

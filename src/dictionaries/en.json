@@ -19,7 +19,8 @@
     "showAllEvents": "Show all events",
     "guestsBlocked": "Guests blocked",
     "uploads": "uploads",
-    "editDetails": "Edit Details"
+    "editDetails": "Edit Details",
+    "telemetry": "Telemetry & Storage"
   },
   "settings": {
     "nav": "Settings",

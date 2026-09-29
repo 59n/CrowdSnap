@@ -30,6 +30,8 @@ interface StorageData {
 interface ReplicaStatus {
   configured: boolean;
   mounted: boolean;
+  state?: 'unconfigured' | 'ok' | 'unplugged' | 'bind_stale';
+  hostMounted?: boolean | null;
   path?: string;
   primaryCount?: number;
   replicaCount?: number;
@@ -53,6 +55,7 @@ export default function StorageWidget() {
   const [replica, setReplica] = useState<ReplicaStatus | null>(null);
   const [overflow, setOverflow] = useState<OverflowStatus | null>(null);
   const [error, setError] = useState(false);
+  const [replicaError, setReplicaError] = useState(false);
   const [syncing, setSyncing] = useState<'to_replica' | 'to_primary' | 'both' | null>(null);
   const [purgingOrphans, setPurgingOrphans] = useState(false);
   const [togglingOverflow, setTogglingOverflow] = useState(false);
@@ -68,8 +71,8 @@ export default function StorageWidget() {
   const fetchReplica = useCallback(() => {
     fetch('/api/admin/storage/sync')
       .then(res => res.ok ? res.json() : null)
-      .then(d => d && setReplica(d))
-      .catch(() => {});
+      .then(d => { if (d) { setReplica(d); setReplicaError(false); } else setReplicaError(true); })
+      .catch(() => setReplicaError(true));
   }, []);
 
   const fetchOverflow = useCallback(() => {
@@ -175,7 +178,7 @@ export default function StorageWidget() {
     }
   }
 
-  if (error) return null;
+  if (error) return <p className="text-xs text-destructive">Storage status unavailable.</p>;
 
   if (!data) {
     return (
@@ -226,7 +229,7 @@ export default function StorageWidget() {
 
         <p className="text-[10px] text-muted-foreground/60 leading-snug">
           {data.matchesSystemSettings
-            ? 'Same free space as macOS Settings (includes reclaimable space)'
+            ? 'Same free space as system settings (includes reclaimable space)'
             : 'System volume free space (not app folder size)'}
         </p>
 
@@ -245,7 +248,7 @@ export default function StorageWidget() {
         )}
 
         {data.overflowReady && !isOverflow && !data.isWarning && (
-          <p className="text-[10px] text-muted-foreground/60">SSD overflow ready (&lt;10 GB free on Mac triggers auto)</p>
+          <p className="text-[10px] text-muted-foreground/60">SSD overflow ready (&lt;10 GB free on primary storage triggers auto)</p>
         )}
       </div>
 
@@ -274,11 +277,12 @@ export default function StorageWidget() {
           <p className="text-[10px] text-muted-foreground/60 leading-snug">
             {overrideMode === 'on'  ? 'New uploads land on SSD first, then mirror to Mac if space allows.' :
              overrideMode === 'off' ? 'Overflow disabled — Mac primary only (still mirrors to SSD).' :
-                                      'Auto: SSD-first when Mac free space &lt; 10 GB.'}
+                                      'Auto: SSD-first when primary storage is below 10 GB free.'}
           </p>
         </div>
       )}
 
+      {replicaError && <p className="text-xs text-destructive">SSD status unavailable. Refresh or check the server logs.</p>}
       {/* Replica / external SSD */}
       {replica?.configured && (
         <div className={`rounded-lg border px-3 py-2.5 space-y-2 text-xs ${
@@ -297,7 +301,13 @@ export default function StorageWidget() {
           </div>
 
           {!replica.mounted ? (
-            <p className="text-[10px] text-amber-600 font-medium">SSD not mounted</p>
+            replica.state === 'bind_stale' ? (
+              <p className="text-[10px] text-amber-600 font-medium leading-snug">
+                SSD is plugged in, but Docker lost the mount. Reconnecting…
+              </p>
+            ) : (
+              <p className="text-[10px] text-amber-600 font-medium">SSD not mounted</p>
+            )
           ) : (
             <>
               {data.replica && !data.replica.capacityUnreliable && (
@@ -315,7 +325,7 @@ export default function StorageWidget() {
 
               <div className="flex flex-col gap-0.5 text-muted-foreground/80">
                 <span>
-                  In gallery: {replica.dbCount ?? '—'} · disk: {replica.primaryCount ?? 0} Mac / {replica.replicaCount ?? 0} SSD
+                  In gallery: {replica.dbCount ?? '—'} · disk: {replica.primaryCount ?? 0} primary / {replica.replicaCount ?? 0} SSD
                 </span>
                 {replica.inSync ? (
                   <span className="text-green-600 font-medium">Known uploads in sync</span>

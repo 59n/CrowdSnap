@@ -22,6 +22,7 @@ export async function POST(request: Request) {
         date: new Date(date),
         maxFileSizeMB: clampMaxFileSizeMB(maxFileSizeMB),
         isActive: true,
+        relaxSecurity: true,
       },
     });
 

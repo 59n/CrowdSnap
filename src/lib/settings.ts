@@ -1,8 +1,10 @@
+import crypto from "crypto";
 import fs from 'fs';
 import path from 'path';
 import { isAllowedStoragePath } from '@/lib/path-safe';
 import { hashPassword, isPasswordHash } from '@/lib/password';
 import { clampMaxFileSizeMB } from '@/lib/file-type';
+import { parseBrrrWebhook } from '@/lib/brrr-url';
 
 /**
  * Runtime app settings — editable from the admin panel.
@@ -10,7 +12,7 @@ import { clampMaxFileSizeMB } from '@/lib/file-type';
  * restarts / Docker still pick them up.
  */
 
-export type SettingCategory = 'storage' | 'auth' | 'server' | 'tunnel';
+export type SettingCategory = 'storage' | 'auth' | 'server' | 'tunnel' | 'alerts';
 
 export interface SettingFieldMeta {
   key: keyof AppSettings;
@@ -46,6 +48,8 @@ export interface AppSettings {
   PANGOLIN_ENDPOINT: string;
   NEWT_ID: string;
   NEWT_SECRET: string;
+  /** brrr webhook URL or secret. Empty = alerts disabled. */
+  BRRR_WEBHOOK_URL: string;
 }
 
 export const SETTING_FIELDS: SettingFieldMeta[] = [
@@ -184,6 +188,17 @@ export const SETTING_FIELDS: SettingFieldMeta[] = [
     optional: true,
     restartRequired: true,
   },
+  {
+    key: 'BRRR_WEBHOOK_URL',
+    label: 'brrr webhook',
+    description:
+      'Paste the shared webhook from the brrr app (https://brrr.now/docs/). Critical alerts: SSD unplugged, web down, storage full. Leave empty to disable.',
+    category: 'alerts',
+    type: 'password',
+    secret: true,
+    optional: true,
+    placeholder: 'https://api.brrr.now/v1/br_usr_…',
+  },
 ];
 
 // turbopackIgnore: do not NFT-trace entire project from process.cwd()
@@ -210,6 +225,7 @@ const DEFAULTS: AppSettings = {
   PANGOLIN_ENDPOINT: '',
   NEWT_ID: '',
   NEWT_SECRET: '',
+  BRRR_WEBHOOK_URL: '',
 };
 
 let cache: AppSettings | null = null;
@@ -246,6 +262,7 @@ export function settingsFromEnv(): AppSettings {
     PANGOLIN_ENDPOINT: envString('PANGOLIN_ENDPOINT', DEFAULTS.PANGOLIN_ENDPOINT),
     NEWT_ID: envString('NEWT_ID', DEFAULTS.NEWT_ID),
     NEWT_SECRET: envString('NEWT_SECRET', DEFAULTS.NEWT_SECRET),
+    BRRR_WEBHOOK_URL: envString('BRRR_WEBHOOK_URL', DEFAULTS.BRRR_WEBHOOK_URL),
   };
 }
 
@@ -311,9 +328,9 @@ function normalizeIncoming(partial: Partial<AppSettings>, current: AppSettings):
     if (field.type === 'number') {
       const n = Number(raw);
       if (!Number.isFinite(n)) continue;
-      (next as any)[key] = n;
+      (next as unknown as Record<string, unknown>)[key] = n;
     } else {
-      (next as any)[key] = String(raw ?? '').trim();
+      (next as unknown as Record<string, unknown>)[key] = String(raw ?? '').trim();
     }
   }
 
@@ -328,6 +345,15 @@ function normalizeIncoming(partial: Partial<AppSettings>, current: AppSettings):
   }
   if (next.STORAGE_REPLICA_PATH && !isAllowedStoragePath(next.STORAGE_REPLICA_PATH)) {
     next.STORAGE_REPLICA_PATH = current.STORAGE_REPLICA_PATH || '';
+  }
+
+  // brrr webhook: empty is fine (alerts off); anything else must be api.brrr.now
+  if (next.BRRR_WEBHOOK_URL) {
+    if (!parseBrrrWebhook(next.BRRR_WEBHOOK_URL)) {
+      next.BRRR_WEBHOOK_URL = current.BRRR_WEBHOOK_URL || '';
+    } else {
+      next.BRRR_WEBHOOK_URL = next.BRRR_WEBHOOK_URL.trim();
+    }
   }
 
   // Home redirect: only simple id/slug segments (no URLs or path tricks)
@@ -363,7 +389,7 @@ function writeSettingsFile(settings: AppSettings) {
  */
 function writeEnvFile(settings: AppSettings) {
   const valueFor = (key: string): string => {
-    const v = (settings as any)[key];
+    const v = (settings as unknown as Record<string, unknown>)[key];
     if (v === undefined || v === null) return '';
     return String(v);
   };
@@ -451,7 +477,7 @@ export function saveAppSettings(partial: Partial<AppSettings>): SaveSettingsResu
     // sync hash via deasync not available — use stored sync scrypt alternative
     // saveAppSettings is called from async routes; prefer asyncSaveAppSettings.
     // For sync path used by auth rehash, we use crypto scryptSync:
-    const crypto = require('crypto') as typeof import('crypto');
+    // uses top-level import crypto
     const salt = crypto.randomBytes(16);
     const derived = crypto.scryptSync(String(partial.ADMIN_PASSWORD), salt, 64);
     next.ADMIN_PASSWORD = `scrypt$${salt.toString('base64')}$${derived.toString('base64')}`;

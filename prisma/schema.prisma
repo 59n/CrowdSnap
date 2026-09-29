@@ -65,6 +65,8 @@ model Event {
   archivedAt           DateTime?
   maxFileSizeMB        Int      @default(100)
   guestGalleryEnabled  Boolean  @default(true)
+  /** Admin testing switch: skip per-IP and per-event upload rate limits. */
+  relaxSecurity        Boolean  @default(true)
   createdAt            DateTime @default(now())
   uploads       Upload[]
 

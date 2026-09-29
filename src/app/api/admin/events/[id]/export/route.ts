@@ -4,7 +4,8 @@ import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import prisma from '@/lib/db';
 import fs from 'fs';
 import { ZipArchive } from 'archiver';
-import { Readable, PassThrough } from 'stream';
+import { PassThrough } from 'stream';
+import { webStreamFromNode } from '@/lib/web-stream';
 import { resolveReadPath } from '@/lib/storage';
 import { sanitizeZipEntryName } from '@/lib/zip-names';
 import { isSafeId } from '@/lib/path-safe';
@@ -35,7 +36,7 @@ export async function GET(
 
   const passthrough = new PassThrough();
   
-  const webStream = Readable.toWeb(passthrough);
+  const webStream = webStreamFromNode(passthrough);
 
   const archive = new ZipArchive({
     zlib: { level: 0 },

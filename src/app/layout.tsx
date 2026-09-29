@@ -20,9 +20,6 @@ export const metadata: Metadata = {
   description: "Share your photos and videos seamlessly.",
 };
 
-// Guest/admin pages are dynamic (cookies, auth, event data)
-export const dynamic = "force-dynamic";
-
 export default async function RootLayout({
   children,
 }: Readonly<{

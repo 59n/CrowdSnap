@@ -15,6 +15,7 @@ import {
   mirrorToOtherSide,
 } from '@/lib/storage';
 import { detectMediaType } from '@/lib/file-type';
+import { invalidateGuestShell } from '@/lib/guest-shell-cache';
 import sharp from 'sharp';
 
 const MAX_COVER_BYTES = 10 * 1024 * 1024; // 10 MB
@@ -104,6 +105,7 @@ export async function POST(
       scheduleMirror(metaPath, `events/${id}/metadata/cover_meta.json`, false);
     }
 
+    invalidateGuestShell(id);
     return NextResponse.json({ success: true, v: Date.now() });
   } catch (error) {
     console.error('Error uploading cover image:', error);
@@ -132,6 +134,7 @@ export async function DELETE(
       return NextResponse.json({ error: 'Event not found' }, { status: 404 });
     }
     removeCoverFiles(id);
+    invalidateGuestShell(id);
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Error deleting cover image:', error);

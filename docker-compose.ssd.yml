@@ -1,0 +1,11 @@
+# Optional replica SSD bind. Used only when the drive is mounted:
+#   docker compose -f docker-compose.yml -f docker-compose.ssd.yml up -d web
+# scripts/ssd-watch.sh attaches this automatically.
+services:
+  web:
+    volumes:
+      - type: bind
+        source: /Volumes/1TB
+        target: /Volumes/1TB
+        bind:
+          create_host_path: false

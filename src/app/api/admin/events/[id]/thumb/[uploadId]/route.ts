@@ -5,14 +5,14 @@ import prisma from '@/lib/db';
 import fs from 'fs';
 import path from 'path';
 import sharp from 'sharp';
-import { Readable } from 'stream';
+import { webStreamFromNode } from '@/lib/web-stream';
 import { getPrimaryPath, resolveReadPath, scheduleMirror, isSafeEventId } from '@/lib/storage';
 import { isSafeId } from '@/lib/path-safe';
 
 async function streamJpeg(filePath: string) {
   const nodeStream = fs.createReadStream(filePath);
   const { size } = fs.statSync(filePath);
-  const webStream = Readable.toWeb(nodeStream);
+  const webStream = webStreamFromNode(nodeStream);
   return new NextResponse(webStream as unknown as BodyInit, {
     headers: {
       'Content-Type': 'image/jpeg',

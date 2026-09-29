@@ -1,0 +1,6 @@
+[Unit]
+Description=Check CrowdSnap USB SSD and Proxmox container bind
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/crowdsnap-ssd-watch

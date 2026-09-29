@@ -1,0 +1,7 @@
+[Unit]
+Description=Back up CrowdSnap PostgreSQL to the SATA backup drive
+RequiresMountsFor=/mnt/wedding-backups
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/crowdsnap-postgres-backup

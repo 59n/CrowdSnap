@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Trash2, Film, ImageIcon, Loader2 } from "lucide-react";
+import { Trash2, Film, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { useTranslation } from "./TranslationProvider";
@@ -17,6 +17,32 @@ interface GuestUpload {
 
 interface GuestGalleryProps {
   eventId: string;
+}
+
+function GuestThumb({
+  eventId,
+  uploadId,
+  alt,
+}: {
+  eventId: string;
+  uploadId: string;
+  alt: string;
+}) {
+  const [attempt, setAttempt] = useState(0);
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={`/api/p/${eventId}/thumb/${uploadId}${attempt ? `?r=${attempt}` : ""}`}
+      alt={alt}
+      loading="lazy"
+      className="w-full h-full object-cover"
+      onError={() => {
+        if (attempt < 8) {
+          window.setTimeout(() => setAttempt((n) => n + 1), 700);
+        }
+      }}
+    />
+  );
 }
 
 function getDeviceId(): string {
@@ -91,37 +117,20 @@ export default function GuestGallery({ eventId }: GuestGalleryProps) {
     }
   };
 
-  // Don't render section at all while loading with no prior uploads
-  if (loading) {
-    return (
-      <div className="w-full max-w-xl mx-auto mt-8">
-        <div className="flex items-center gap-2 text-xs text-muted-foreground mb-4">
-          <Loader2 className="w-3.5 h-3.5 animate-spin" />
-          {t("guest.yourUploads")}
-        </div>
-        <div className="grid grid-cols-3 gap-3">
-          {[...Array(3)].map((_, i) => (
-            <div key={i} className="aspect-square rounded-xl bg-muted/40 animate-pulse" />
-          ))}
-        </div>
-      </div>
-    );
-  }
-
-  if (uploads.length === 0) return null;
+  if (loading || uploads.length === 0) return null;
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      className="w-full max-w-xl mx-auto mt-8"
+      className="w-full max-w-xl mx-auto mt-10"
     >
-      <div className="flex items-center justify-between mb-3">
-        <h2 className="text-sm font-semibold text-foreground/80 flex items-center gap-1.5">
-          <ImageIcon className="w-4 h-4 text-primary" />
+      <div className="flex items-center gap-3 mb-4">
+        <div className="flex-1 h-px bg-border/40" />
+        <span className="text-xs text-muted-foreground/50 font-medium uppercase tracking-widest">
           {t("guest.yourUploads")}
-        </h2>
-        <span className="text-xs text-muted-foreground">{uploads.length}</span>
+        </span>
+        <div className="flex-1 h-px bg-border/40" />
       </div>
 
       <div className="grid grid-cols-3 gap-2.5">
@@ -140,13 +149,7 @@ export default function GuestGallery({ eventId }: GuestGalleryProps) {
                 className="relative aspect-square rounded-xl overflow-hidden bg-muted group"
               >
                 {isImage ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={`/api/p/${eventId}/thumb/${upload.id}`}
-                    alt={upload.originalName}
-                    loading="lazy"
-                    className="w-full h-full object-cover"
-                  />
+                  <GuestThumb eventId={eventId} uploadId={upload.id} alt={upload.originalName} />
                 ) : (
                   <div className="w-full h-full flex flex-col items-center justify-center bg-muted/80 gap-1.5">
                     <Film className="w-7 h-7 text-muted-foreground/60" />

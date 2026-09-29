@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import fs from 'fs';
-import { Readable } from 'stream';
+import { webStreamFromNode } from '@/lib/web-stream';
 import prisma from '@/lib/db';
 import { resolveReadPath, isSafeEventId } from '@/lib/storage';
 import { expirePastEvents } from '@/lib/events';
@@ -50,7 +50,7 @@ export async function GET(
     }
 
     const nodeStream = fs.createReadStream(coverPath);
-    const webStream = Readable.toWeb(nodeStream);
+    const webStream = webStreamFromNode(nodeStream);
 
     return new NextResponse(webStream as unknown as BodyInit, {
       status: 200,

@@ -23,6 +23,8 @@
 # misc
 .DS_Store
 *.pem
+__pycache__/
+*.pyc
 
 # debug
 npm-debug.log*
@@ -44,6 +46,7 @@ next-env.d.ts
 
 docker-compose.override.yml
 .agents/
+.superpowers/
 skills-lock.json
 gallery.html
 
@@ -51,18 +54,7 @@ gallery.html
 /storage/
 /tmp/
 /scripts/stress_test/
-/logs/
-/data/settings.json
-/data/settings.json.tmp
-
-
-# Compiled macOS free-space helper (built from scripts/macos-disk-free.swift)
 /scripts/macos-disk-free
-
-
-# Ensure all env variations are strictly ignored
-.env
-.env.local
-.env.development
-.env.production
-.env.test
+/logs/
+/data/*
+!/data/.gitkeep

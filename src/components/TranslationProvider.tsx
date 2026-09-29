@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
-type Dictionary = any; // For flexible nested objects
+type Dictionary = Record<string, unknown>; // For flexible nested objects
 
 interface TranslationContextType {
   t: (keyPath: string, values?: Record<string, string | number>) => string;
@@ -52,30 +52,27 @@ export function TranslationProvider({
 
   const t = (keyPath: string, values?: Record<string, string | number>): string => {
     const keys = keyPath.split(".");
-    let result = dictionary;
+    let current: unknown = dictionary;
 
     for (const key of keys) {
-      if (result && typeof result === "object" && key in result) {
-        result = result[key];
+      if (current && typeof current === "object" && key in current) {
+        current = (current as Record<string, unknown>)[key];
       } else {
-        return keyPath; // Fallback to the key itself if not found
+        return keyPath;
       }
     }
 
-    if (typeof result !== "string") {
+    if (typeof current !== "string") {
       return keyPath;
     }
 
-    // Handle token replacement (e.g. {count})
+    let templated: string = current;
     if (values) {
-      let templated = result;
       for (const [key, value] of Object.entries(values)) {
         templated = templated.replace(new RegExp(`{${key}}`, "g"), String(value));
       }
-      return templated;
     }
-
-    return result;
+    return templated;
   };
 
   return (

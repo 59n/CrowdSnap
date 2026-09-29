@@ -15,6 +15,8 @@ import {
   invalidateSyncDiffCache,
   type KnownUpload,
 } from '@/lib/storage';
+import { classifyReplicaMount, loadSsdHostStatus } from '@/lib/ssd-watch';
+import { notifyCritical } from '@/lib/alert';
 
 async function loadKnownUploads(): Promise<KnownUpload[]> {
   return prisma.upload.findMany({
@@ -117,15 +119,65 @@ export async function GET() {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  if (!getReplicaPath()) {
-    return NextResponse.json({ configured: false, mounted: false });
+  const replicaPath = getReplicaPath();
+  const hostStatus = loadSsdHostStatus(path.join(/* turbopackIgnore: true */ process.cwd(), 'data', 'ssd-status.json'));
+  const statusFresh = hostStatus?.replicaPath === replicaPath &&
+    Date.now() - Date.parse(hostStatus.at) < 120_000;
+  const hostMounted = statusFresh ? hostStatus!.hostMounted : null;
+
+  if (!replicaPath) {
+    return NextResponse.json({ configured: false, mounted: false, state: 'unconfigured' });
   }
 
-  if (!isReplicaAvailable()) {
+  const reachable = isReplicaAvailable();
+  const state = classifyReplicaMount({
+    configured: true,
+    reachable,
+    hostMounted,
+  });
+
+  if (state === 'unplugged') {
+    notifyCritical({
+      key: 'ssd.unplugged',
+      title: 'Backup SSD unplugged',
+      message: 'The replica drive is not mounted. Uploads stay on primary storage until it is plugged back in.',
+      level: 'critical',
+      threadId: 'crowdsnap-ssd',
+    });
+  } else if (state === 'bind_stale') {
+    notifyCritical({
+      key: 'ssd.bind_stale',
+      title: 'SSD bind stale',
+      message: 'The host has the drive, but the web container cannot write it.',
+      level: 'time-sensitive',
+      threadId: 'crowdsnap-ssd',
+    });
+  } else if (state === 'ok') {
+    notifyCritical({
+      key: 'ssd.unplugged',
+      title: 'Backup SSD unplugged',
+      message: 'The replica drive is mounted again.',
+      level: 'critical',
+      threadId: 'crowdsnap-ssd',
+      recovered: true,
+    });
+    notifyCritical({
+      key: 'ssd.bind_stale',
+      title: 'SSD bind stale',
+      message: 'Docker can write the replica again.',
+      level: 'time-sensitive',
+      threadId: 'crowdsnap-ssd',
+      recovered: true,
+    });
+  }
+
+  if (!reachable) {
     return NextResponse.json({
       configured: true,
       mounted: false,
-      path: getReplicaPath(),
+      state,
+      hostMounted,
+      path: replicaPath,
     });
   }
 
@@ -140,7 +192,9 @@ export async function GET() {
   return NextResponse.json({
     configured: true,
     mounted: true,
-    path: getReplicaPath(),
+    state,
+    hostMounted: hostMounted ?? true,
+    path: replicaPath,
     // Disk originals (includes orphans) — kept for transparency
     primaryCount: diff.primaryOriginals,
     replicaCount: diff.replicaOriginals,

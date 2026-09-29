@@ -7,9 +7,11 @@ export type DetectedKind =
   | 'image/gif'
   | 'image/heic'
   | 'image/heif'
+  | 'image/avif'
   | 'video/mp4'
   | 'video/quicktime'
   | 'video/webm'
+  | 'video/3gpp'
   | null;
 
 const ALLOWED = new Set<string>([
@@ -19,9 +21,11 @@ const ALLOWED = new Set<string>([
   'image/gif',
   'image/heic',
   'image/heif',
+  'image/avif',
   'video/mp4',
   'video/quicktime',
   'video/webm',
+  'video/3gpp',
 ]);
 
 export function isAllowedMime(mime: string): boolean {
@@ -61,21 +65,44 @@ export function detectMediaType(buf: Buffer): DetectedKind {
     return 'image/webp';
   }
 
-  // HEIC/HEIF: ftyp box with brands
+  // ISO-BMFF: HEIC/AVIF/MP4/MOV/3GP all start with an ftyp box.
   if (buf.length >= 12 && buf.toString('ascii', 4, 8) === 'ftyp') {
     const brand = buf.toString('ascii', 8, 12);
+    const avifBrands = ['avif', 'avis', 'avio'];
+    if (avifBrands.includes(brand)) return 'image/avif';
+
     const heicBrands = ['heic', 'heix', 'hevc', 'hevx', 'mif1', 'msf1', 'heim', 'heis'];
     if (heicBrands.includes(brand)) {
-      return brand.startsWith('hei') || brand === 'mif1' || brand === 'msf1'
-        ? brand === 'mif1' || brand === 'msf1'
-          ? 'image/heif'
-          : 'image/heic'
-        : 'image/heic';
+      return brand === 'mif1' || brand === 'msf1' ? 'image/heif' : 'image/heic';
     }
-    // MP4 / QuickTime often use ftyp too
-    const mp4Brands = ['isom', 'iso2', 'mp41', 'mp42', 'avc1', 'dash', 'M4V ', 'M4A '];
-    if (mp4Brands.includes(brand) || brand.startsWith('mp4')) return 'video/mp4';
+
+    // iPhone HEVC videos use iso5/iso6; older phones use isom/mp42.
+    const mp4Brands = [
+      'isom',
+      'iso2',
+      'iso3',
+      'iso4',
+      'iso5',
+      'iso6',
+      'iso7',
+      'iso8',
+      'iso9',
+      'mp41',
+      'mp42',
+      'avc1',
+      'dash',
+      'M4V ',
+      'M4A ',
+    ];
+    if (mp4Brands.includes(brand) || brand.startsWith('mp4') || brand.startsWith('iso')) {
+      return 'video/mp4';
+    }
     if (brand === 'qt  ') return 'video/quicktime';
+
+    const gppBrands = ['3gp4', '3gp5', '3gp6', '3gp7', '3gp8', '3gp9', '3g2a', '3g2b', '3g2c'];
+    if (gppBrands.includes(brand) || brand.startsWith('3gp') || brand.startsWith('3g2')) {
+      return 'video/3gpp';
+    }
   }
 
   // WebM / Matroska EBML
@@ -120,12 +147,16 @@ export function extForMime(mime: string): string {
       return '.heic';
     case 'image/heif':
       return '.heif';
+    case 'image/avif':
+      return '.avif';
     case 'video/mp4':
       return '.mp4';
     case 'video/quicktime':
       return '.mov';
     case 'video/webm':
       return '.webm';
+    case 'video/3gpp':
+      return '.3gp';
     default:
       return path.extname('') || '.bin';
   }
@@ -133,7 +164,7 @@ export function extForMime(mime: string): string {
 
 export const MIN_MAX_FILE_MB = 1;
 /** Per-event / global upload cap. Self-hosted; allow large phone videos. */
-export const MAX_MAX_FILE_MB = 2048;
+export const MAX_MAX_FILE_MB = 3072;
 
 /** Clamp event maxFileSizeMB to a safe range. */
 export function clampMaxFileSizeMB(value: unknown, fallback = 100): number {

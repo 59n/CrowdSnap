@@ -14,6 +14,7 @@ import {
   getReplicaPath,
 } from '@/lib/storage';
 import { detectMediaType } from '@/lib/file-type';
+import { invalidateGuestShell } from '@/lib/guest-shell-cache';
 import sharp from 'sharp';
 import path from 'path';
 
@@ -110,6 +111,7 @@ export async function POST(
       scheduleMirror(metaPath, bannerRel(id, 'banner_meta.json'), false);
     }
 
+    invalidateGuestShell(id);
     return NextResponse.json({ success: true, v: Date.now() });
   } catch (error) {
     console.error('Error uploading banner image:', error);
@@ -138,6 +140,7 @@ export async function DELETE(
       return NextResponse.json({ error: 'Event not found' }, { status: 404 });
     }
     removeBannerFiles(id);
+    invalidateGuestShell(id);
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Error deleting banner image:', error);

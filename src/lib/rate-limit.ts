@@ -66,6 +66,56 @@ export function resetRateLimits() {
   store.clear();
 }
 
+export type UploadRateLimitBlock = {
+  scope: 'ip' | 'event';
+  retryAfterMs: number;
+  error: string;
+};
+
+/**
+ * Enforce guest upload limits.
+ * When `relaxSecurity` is set (event testing mode), skip both limits and
+ * do not consume buckets. Login limits are unchanged.
+ */
+export function enforceUploadRateLimits(opts: {
+  relaxSecurity?: boolean;
+  ip: string;
+  eventId: string;
+  now?: number;
+}): UploadRateLimitBlock | null {
+  if (opts.relaxSecurity ?? true) return null;
+
+  const ipLimit = checkRateLimit(
+    rateLimitKey('upload', 'ip', opts.ip),
+    UPLOAD_IP_LIMIT.max,
+    UPLOAD_IP_LIMIT.windowMs,
+    opts.now
+  );
+  if (!ipLimit.allowed) {
+    return {
+      scope: 'ip',
+      retryAfterMs: ipLimit.retryAfterMs,
+      error: 'Too many uploads from this network',
+    };
+  }
+
+  const eventLimit = checkRateLimit(
+    rateLimitKey('upload', 'event', opts.eventId),
+    UPLOAD_EVENT_LIMIT.max,
+    UPLOAD_EVENT_LIMIT.windowMs,
+    opts.now
+  );
+  if (!eventLimit.allowed) {
+    return {
+      scope: 'event',
+      retryAfterMs: eventLimit.retryAfterMs,
+      error: 'Too many uploads for this event',
+    };
+  }
+
+  return null;
+}
+
 // Default policies used by routes
 // Env overrides (optional): UPLOAD_RATE_PER_IP, UPLOAD_RATE_PER_EVENT, LOGIN_RATE_MAX
 export const LOGIN_LIMIT = {

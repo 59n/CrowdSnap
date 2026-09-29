@@ -1,22 +1,15 @@
 import UploadZone from "@/components/UploadZone";
 import GuestGallery from "@/components/GuestGallery";
 import GuestEventClosed from "@/components/GuestEventClosed";
-import GuestHeroBanner from "@/components/GuestHeroBanner";
-import prisma from "@/lib/db";
+import GuestHeroBanner, { GuestHeroIntroProvider } from "@/components/GuestHeroBanner";
 import { redirect } from "next/navigation";
-import { Camera } from "lucide-react";
-import fs from "fs";
-import { getFilePath } from "@/lib/storage";
+import { loadGuestShell } from "@/lib/guest-shell";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import { TranslationProvider } from "@/components/TranslationProvider";
-import { getDictionary } from "@/lib/i18n";
+import { getDictionary, type Locale } from "@/lib/i18n";
 import { cookies } from "next/headers";
 import { format } from "date-fns";
-import {
-  expirePastEvents,
-  getEventStatus,
-  isEventOpenForGuests,
-} from "@/lib/events";
+import { getEventStatus, isEventOpenForGuests } from "@/lib/events";
 
 interface PageProps {
   params: Promise<{
@@ -27,34 +20,17 @@ interface PageProps {
 export default async function GuestEventPage({ params }: PageProps) {
   const { eventId } = await params;
 
-  await expirePastEvents();
-
-  // Resolve by ID first, then fall back to custom slug
-  let event = await prisma.event.findUnique({ where: { id: eventId } });
-  if (!event) {
-    event = await prisma.event.findUnique({ where: { slug: eventId } });
-  }
-
-  // Unknown event / bad link → home
-  if (!event) {
+  const shell = await loadGuestShell(eventId);
+  if (!shell) {
     redirect("/");
   }
+  const { event, hasCoverImage, hasBannerImage, coverCacheKey, bannerCacheKey } = shell;
 
   const cookieStore = await cookies();
   const cookieName = `NEXT_LOCALE_GUEST_${event.id}`;
   const cookieLocale = cookieStore.get(cookieName)?.value;
   const lang = cookieLocale || event.language || "en";
-  const dictionary = await getDictionary(lang as any);
-  const coverPath = getFilePath(event.id, "metadata", "cover.bin");
-  const bannerPath = getFilePath(event.id, "metadata", "banner.bin");
-  const hasCoverImage = fs.existsSync(coverPath);
-  const hasBannerImage = fs.existsSync(bannerPath);
-  const coverCacheKey = hasCoverImage
-    ? Math.floor(fs.statSync(coverPath).mtimeMs)
-    : 0;
-  const bannerCacheKey = hasBannerImage
-    ? Math.floor(fs.statSync(bannerPath).mtimeMs)
-    : 0;
+  const dictionary = await getDictionary(lang as Locale);
 
   // Known event but closed → friendly status page (not 404)
   if (!isEventOpenForGuests(event)) {
@@ -95,6 +71,7 @@ export default async function GuestEventPage({ params }: PageProps) {
       initialLocale={lang}
       cookieName={cookieName}
     >
+      <GuestHeroIntroProvider enabled={hasBannerImage}>
       <div className="relative min-h-screen bg-background flex flex-col overflow-x-hidden">
         {hasBannerImage ? (
           <GuestHeroBanner eventId={event.id} cacheKey={bannerCacheKey} />
@@ -121,10 +98,10 @@ export default async function GuestEventPage({ params }: PageProps) {
           {/* Hero — sits on the banner fade when present */}
           <div
             className={`w-full max-w-xl text-center mb-8 ${
-              hasBannerImage ? "mt-[min(18vh,120px)]" : "mt-2"
+              hasBannerImage ? "guest-hero-copy" : "mt-2"
             }`}
           >
-            {hasCoverImage ? (
+            {hasCoverImage && (
               <div
                 className={`inline-flex items-center justify-center w-20 h-20 rounded-full overflow-hidden border-4 shadow-xl mb-5 bg-muted ${
                   hasBannerImage ? "border-background ring-2 ring-black/5" : "border-background"
@@ -136,10 +113,6 @@ export default async function GuestEventPage({ params }: PageProps) {
                   alt="Event"
                   className="w-full h-full object-cover"
                 />
-              </div>
-            ) : (
-              <div className="inline-flex items-center justify-center w-16 h-16 bg-primary/10 rounded-full mb-5 border border-primary/20 backdrop-blur-sm bg-background/70">
-                <Camera className="w-7 h-7 text-primary" />
               </div>
             )}
 
@@ -160,23 +133,10 @@ export default async function GuestEventPage({ params }: PageProps) {
           {/* Upload zone */}
           <UploadZone eventId={event.id} />
 
-          {/* Guest's own uploads gallery */}
-          {event.guestGalleryEnabled && (
-            <>
-              <div className="w-full max-w-xl mx-auto mt-10 mb-0">
-                <div className="flex items-center gap-3">
-                  <div className="flex-1 h-px bg-border/40" />
-                  <span className="text-xs text-muted-foreground/50 font-medium uppercase tracking-widest">
-                    {dictionary.guest.yourUploads}
-                  </span>
-                  <div className="flex-1 h-px bg-border/40" />
-                </div>
-              </div>
-              <GuestGallery eventId={event.id} />
-            </>
-          )}
+          {event.guestGalleryEnabled && <GuestGallery eventId={event.id} />}
         </main>
       </div>
+      </GuestHeroIntroProvider>
     </TranslationProvider>
   );
 }

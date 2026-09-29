@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
-import { getOverrideMode, setOverrideMode, getWriteRoot } from '@/lib/storage';
+import { setOverrideMode, getWriteRoot } from '@/lib/storage';
 
 export async function GET() {
   const session = await getServerSession(authOptions);

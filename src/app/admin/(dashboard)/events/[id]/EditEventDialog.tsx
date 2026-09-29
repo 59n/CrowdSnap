@@ -47,6 +47,7 @@ export default function EditEventDialog({
     language: string;
     maxFileSizeMB: number;
     guestGalleryEnabled?: boolean;
+    relaxSecurity?: boolean;
   };
   hasBannerImage?: boolean;
   hasCoverImage?: boolean;
@@ -71,6 +72,7 @@ export default function EditEventDialog({
     language: event.language,
     maxFileSizeMB: event.maxFileSizeMB,
     guestGalleryEnabled: event.guestGalleryEnabled ?? true,
+    relaxSecurity: event.relaxSecurity ?? true,
   });
   const { t } = useTranslation();
 
@@ -86,6 +88,7 @@ export default function EditEventDialog({
       language: event.language,
       maxFileSizeMB: event.maxFileSizeMB,
       guestGalleryEnabled: event.guestGalleryEnabled ?? true,
+      relaxSecurity: event.relaxSecurity ?? true,
     });
     setCoverFile(null);
     setBannerFile(null);
@@ -305,7 +308,7 @@ export default function EditEventDialog({
               required
             />
             <p className="text-xs text-muted-foreground">
-              {MIN_MAX_FILE_MB}–{MAX_MAX_FILE_MB} MB per file (videos often need 500–1000+)
+              {MIN_MAX_FILE_MB}–{MAX_MAX_FILE_MB} MB per file (about 3 GB)
             </p>
           </div>
 
@@ -324,6 +327,23 @@ export default function EditEventDialog({
               />
             </div>
             <p className="text-xs text-muted-foreground">{t("editEvent.slugDesc")}</p>
+          </div>
+
+          {/* Testing: skip upload rate limits for this event only */}
+          <div className="flex items-center justify-between gap-3 rounded-md border border-amber-500/40 bg-amber-500/5 px-3 py-2.5">
+            <div>
+              <Label htmlFor="edit-relaxSecurity" className="cursor-pointer">
+                {t("editEvent.testingMode")}
+              </Label>
+              <p className="text-xs text-muted-foreground mt-0.5">{t("editEvent.testingModeDesc")}</p>
+            </div>
+            <input
+              id="edit-relaxSecurity"
+              type="checkbox"
+              checked={formData.relaxSecurity}
+              onChange={(e) => setFormData({ ...formData, relaxSecurity: e.target.checked })}
+              className="h-4 w-4 shrink-0 rounded border-input accent-primary cursor-pointer"
+            />
           </div>
 
           {/* Guest gallery toggle */}

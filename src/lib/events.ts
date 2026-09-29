@@ -1,4 +1,5 @@
 import prisma from '@/lib/db';
+import { invalidateAllGuestShells } from '@/lib/guest-shell-cache';
 
 export type EventStatus = 'active' | 'disabled' | 'ended' | 'archived';
 
@@ -77,6 +78,7 @@ export async function expirePastEvents(force = false): Promise<number> {
     data: { isActive: false },
   });
 
+  if (result.count > 0) invalidateAllGuestShells();
   return result.count;
 }
 

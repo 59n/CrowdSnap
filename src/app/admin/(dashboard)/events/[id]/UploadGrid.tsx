@@ -7,7 +7,6 @@ import {
   LayoutGrid, List, Users, Clock, ShieldAlert, ChevronDown, ChevronUp,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
@@ -294,50 +293,50 @@ export default function UploadGrid({
 
   if (uploads.length === 0) {
     return (
-      <div className="text-center py-12 border border-dashed rounded-xl bg-muted/10">
-        <ImageIcon className="mx-auto h-12 w-12 text-muted-foreground/50 mb-4" />
-        <h3 className="text-lg font-medium">{t("uploadGrid.noUploads")}</h3>
-        <p className="text-muted-foreground mt-1 max-w-sm mx-auto">{t("uploadGrid.noUploadsDesc")}</p>
+      <div className="text-center py-10 sm:py-12 border border-dashed rounded-xl bg-muted/10 p-4">
+        <ImageIcon className="mx-auto h-10 w-10 sm:h-12 sm:w-12 text-muted-foreground/50 mb-3 sm:mb-4" />
+        <h3 className="text-base sm:text-lg font-medium">{t("uploadGrid.noUploads")}</h3>
+        <p className="text-muted-foreground mt-1 max-w-sm mx-auto text-xs sm:text-sm">{t("uploadGrid.noUploadsDesc")}</p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-4">
-      {/* ── Stats ─────────────────────────────────────── */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div className="bg-muted/30 border border-border/40 rounded-lg px-3 py-2.5">
+    <div className="space-y-3 sm:space-y-4">
+      {/* ── Stats ──────────────────────────────────────── */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
+        <div className="bg-muted/30 border border-border/40 rounded-lg p-2.5 sm:px-3 sm:py-2.5">
           <p className="text-[11px] text-muted-foreground mb-0.5 flex items-center gap-1">
             <ImageIcon className="w-3 h-3" /> {t("admin.uploads")}
           </p>
-          <p className="text-lg font-bold">{stats.count}</p>
+          <p className="text-base sm:text-lg font-bold">{stats.count}</p>
           <p className="text-[10px] text-muted-foreground">{stats.imageCount} img · {stats.videoCount} vid</p>
           <p className="text-[10px] text-muted-foreground/60">{initialUploads.length} in DB at load</p>
         </div>
 
-        <div className="bg-muted/30 border border-border/40 rounded-lg px-3 py-2.5">
+        <div className="bg-muted/30 border border-border/40 rounded-lg p-2.5 sm:px-3 sm:py-2.5">
           <p className="text-[11px] text-muted-foreground mb-0.5">Storage</p>
-          <p className="text-lg font-bold">{stats.totalSizeMB.toFixed(1)}</p>
+          <p className="text-base sm:text-lg font-bold">{stats.totalSizeMB.toFixed(1)}</p>
           <p className="text-[10px] text-muted-foreground">MB total</p>
           {stats.count > 0 && (
             <p className="text-[10px] text-muted-foreground/60">~{(stats.totalSizeMB / stats.count).toFixed(1)} MB avg</p>
           )}
         </div>
 
-        <div className="bg-muted/30 border border-border/40 rounded-lg px-3 py-2.5">
+        <div className="bg-muted/30 border border-border/40 rounded-lg p-2.5 sm:px-3 sm:py-2.5">
           <p className="text-[11px] text-muted-foreground mb-0.5 flex items-center gap-1">
             <Users className="w-3 h-3" /> Contributors
           </p>
-          <p className="text-lg font-bold">{stats.uniqueDeviceCount || "—"}</p>
+          <p className="text-base sm:text-lg font-bold">{stats.uniqueDeviceCount || "—"}</p>
           <p className="text-[10px] text-muted-foreground">unique devices</p>
           <p className="text-[10px] text-muted-foreground/60">max {maxFileSizeMB} MB/file</p>
         </div>
 
-        <div className="bg-muted/30 border border-border/40 rounded-lg px-3 py-2.5">
+        <div className="bg-muted/30 border border-border/40 rounded-lg p-2.5 sm:px-3 sm:py-2.5">
           <p className="text-[11px] text-muted-foreground mb-0.5 flex items-center gap-1">
             <Clock className="w-3 h-3" /> Last Upload
           </p>
-          <p className="text-sm font-bold leading-snug">
+          <p className="text-xs sm:text-sm font-bold leading-snug">
             {stats.lastUpload ? formatDistanceToNow(stats.lastUpload, { addSuffix: true }) : "—"}
           </p>
           {stats.lastUpload && (
@@ -346,14 +345,14 @@ export default function UploadGrid({
         </div>
       </div>
 
-      {/* ── Toolbar ───────────────────────────────────── */}
+      {/* ── Toolbar ────────────────────────────────────── */}
       <div className="flex flex-col gap-2">
         <AnimatePresence>
           {newCount > 0 && (
             <motion.button
               initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
               onClick={() => { setCurrentPage(1); setSortOrder("newest"); setNewCount(0); setNewIds(new Set()); }}
-              className="w-full py-2 px-4 rounded-lg bg-primary/10 border border-primary/30 text-primary text-sm font-medium flex items-center justify-center gap-2 hover:bg-primary/15 transition-colors"
+              className="w-full py-2 px-4 rounded-lg bg-primary/10 border border-primary/30 text-primary text-xs sm:text-sm font-medium flex items-center justify-center gap-2 hover:bg-primary/15 transition-colors"
             >
               <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
               {newCount} new {newCount === 1 ? "upload" : "uploads"} — click to view
@@ -364,14 +363,14 @@ export default function UploadGrid({
         <div className="flex flex-col sm:flex-row gap-2 justify-between items-start sm:items-center bg-muted/20 p-2 rounded-lg border border-border/50">
           {/* Left: type + device filters */}
           <div className="flex gap-1.5 w-full sm:w-auto flex-wrap items-center">
-            <Button variant={filterType === "all" ? "default" : "outline"} size="sm" onClick={() => setFilterType("all")} className="rounded-full flex-shrink-0 h-7 text-xs px-3">
+            <Button variant={filterType === "all" ? "default" : "outline"} size="sm" onClick={() => setFilterType("all")} className="rounded-full flex-shrink-0 h-7 text-xs px-2.5 sm:px-3">
               {t("uploadGrid.all")}
             </Button>
-            <Button variant={filterType === "images" ? "default" : "outline"} size="sm" onClick={() => setFilterType("images")} className="rounded-full flex-shrink-0 h-7 text-xs px-3">
-              <ImageIcon className="w-3 h-3 mr-1.5" /> {t("uploadGrid.images")}
+            <Button variant={filterType === "images" ? "default" : "outline"} size="sm" onClick={() => setFilterType("images")} className="rounded-full flex-shrink-0 h-7 text-xs px-2.5 sm:px-3">
+              <ImageIcon className="w-3 h-3 mr-1 sm:mr-1.5" /> {t("uploadGrid.images")}
             </Button>
-            <Button variant={filterType === "videos" ? "default" : "outline"} size="sm" onClick={() => setFilterType("videos")} className="rounded-full flex-shrink-0 h-7 text-xs px-3">
-              <Film className="w-3 h-3 mr-1.5" /> {t("uploadGrid.videos")}
+            <Button variant={filterType === "videos" ? "default" : "outline"} size="sm" onClick={() => setFilterType("videos")} className="rounded-full flex-shrink-0 h-7 text-xs px-2.5 sm:px-3">
+              <Film className="w-3 h-3 mr-1 sm:mr-1.5" /> {t("uploadGrid.videos")}
             </Button>
 
             {uniqueDevices.size > 0 && (
@@ -383,10 +382,10 @@ export default function UploadGrid({
                     variant={deviceFilter === id ? "secondary" : "outline"}
                     size="sm"
                     onClick={() => setDeviceFilter(deviceFilter === id ? "all" : id)}
-                    className="rounded-full flex-shrink-0 h-7 text-xs px-3"
+                    className="rounded-full flex-shrink-0 h-7 text-xs px-2.5 sm:px-3"
                     title={id}
                   >
-                    <Users className="w-3 h-3 mr-1.5" /> Device {num}
+                    <Users className="w-3 h-3 mr-1 sm:mr-1.5" /> Device {num}
                   </Button>
                 ))}
               </>
@@ -398,9 +397,9 @@ export default function UploadGrid({
                 variant="ghost"
                 size="sm"
                 onClick={() => setShowDangerZone(true)}
-                className="rounded-full flex-shrink-0 h-7 text-xs px-3 text-muted-foreground"
+                className="rounded-full flex-shrink-0 h-7 text-xs px-2.5 sm:px-3 text-muted-foreground"
               >
-                <ShieldAlert className="w-3 h-3 mr-1.5" />
+                <ShieldAlert className="w-3 h-3 mr-1 sm:mr-1.5" />
                 Danger zone
                 <ChevronDown className="w-3 h-3 ml-1 opacity-60" />
               </Button>
@@ -411,9 +410,9 @@ export default function UploadGrid({
                   size="sm"
                   onClick={openDeleteAllModal}
                   disabled={isDeletingAll || uploads.length === 0}
-                  className="rounded-full flex-shrink-0 h-7 text-xs px-3"
+                  className="rounded-full flex-shrink-0 h-7 text-xs px-2.5 sm:px-3"
                 >
-                  <Trash2 className="w-3 h-3 mr-1.5" />
+                  <Trash2 className="w-3 h-3 mr-1 sm:mr-1.5" />
                   {isDeletingAll ? t("uploadGrid.deleting") : t("uploadGrid.deleteAll")}
                 </Button>
                 <Button
@@ -430,7 +429,7 @@ export default function UploadGrid({
           </div>
 
           {/* Right: live + view toggle + sort */}
-          <div className="flex items-center gap-2 w-full sm:w-auto shrink-0">
+          <div className="flex items-center justify-between sm:justify-end gap-2 w-full sm:w-auto shrink-0 pt-1 sm:pt-0">
             <button
               onClick={() => setIsLive(l => !l)}
               title={isLive ? "Live on — click to pause" : "Paused — click to resume"}
@@ -461,14 +460,14 @@ export default function UploadGrid({
               <button
                 onClick={() => setViewMode("list")}
                 title="List view"
-                className={`px-2 py-1.5 border-l border-border transition-colors ${viewMode === "list" ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:bg-muted"}`}
+                className={`px-2 py-1.5 border-l border-border transition-colors ${viewMode === "list" ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:bg-muted"}` }
               >
                 <List className="w-3.5 h-3.5" />
               </button>
             </div>
 
             <select
-              className="text-sm bg-background border border-border rounded-md px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-primary w-full sm:w-auto"
+              className="text-xs sm:text-sm bg-background border border-border rounded-md px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-primary flex-1 sm:flex-initial"
               value={sortOrder}
               onChange={e => setSortOrder(e.target.value)}
             >
@@ -482,12 +481,12 @@ export default function UploadGrid({
 
         {/* Active filter summary */}
         {(deviceFilter !== "all" || filterType !== "all") && (
-          <div className="flex items-center gap-2 text-xs text-muted-foreground px-1">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground px-1 flex-wrap">
             <span>Showing {filteredAndSortedUploads.length} of {uploads.length} uploads</span>
             {deviceFilter !== "all" && (
               <button
                 onClick={() => setDeviceFilter("all")}
-                className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-secondary text-secondary-foreground hover:bg-secondary/80 text-[11px]"
               >
                 Device {uniqueDevices.get(deviceFilter)} <X className="w-3 h-3 ml-0.5" />
               </button>
@@ -495,7 +494,7 @@ export default function UploadGrid({
             {filterType !== "all" && (
               <button
                 onClick={() => setFilterType("all")}
-                className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-secondary text-secondary-foreground hover:bg-secondary/80 text-[11px]"
               >
                 {filterType} <X className="w-3 h-3 ml-0.5" />
               </button>
@@ -504,14 +503,14 @@ export default function UploadGrid({
         )}
       </div>
 
-      {/* ── Content ───────────────────────────────────── */}
+      {/* ── Content ────────────────────────────────────── */}
       {paginatedUploads.length === 0 ? (
-        <div className="text-center py-12 border border-dashed rounded-xl bg-muted/10">
-          <h3 className="text-lg font-medium">{t("uploadGrid.noResults")}</h3>
-          <p className="text-muted-foreground mt-1 text-sm">{t("uploadGrid.tryChangingFilters")}</p>
+        <div className="text-center py-10 sm:py-12 border border-dashed rounded-xl bg-muted/10 p-4">
+          <h3 className="text-base sm:text-lg font-medium">{t("uploadGrid.noResults")}</h3>
+          <p className="text-muted-foreground mt-1 text-xs sm:text-sm">{t("uploadGrid.tryChangingFilters")}</p>
         </div>
       ) : viewMode === "grid" ? (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 2xl:grid-cols-10 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 2xl:grid-cols-10 gap-2 sm:gap-3">
           {paginatedUploads.map(upload => {
             const globalIndex = filteredAndSortedUploads.findIndex(u => u.id === upload.id);
             const isNew = newIds.has(upload.id);
@@ -559,7 +558,10 @@ export default function UploadGrid({
                   {/* Info strip below image */}
                   <div className="px-2 py-1.5 bg-background border-t border-border/30">
                     <p className="text-[11px] font-medium truncate leading-tight" title={upload.originalName}>{upload.originalName}</p>
-                    <p className="text-[10px] text-muted-foreground mt-0.5">{formatSize(upload.size)} · {deviceLabel(upload.deviceId)}</p>
+                    <div className="flex items-center justify-between text-[10px] text-muted-foreground mt-0.5">
+                      <span>{formatSize(upload.size)}</span>
+                      <span>{formatDistanceToNow(new Date(upload.createdAt), { addSuffix: false })}</span>
+                    </div>
                   </div>
                 </div>
               </motion.div>
@@ -567,33 +569,29 @@ export default function UploadGrid({
           })}
         </div>
       ) : (
-        /* List view */
-        <div className="rounded-lg border border-border/50 overflow-hidden">
+        <div className="border border-border/60 rounded-lg overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="bg-muted/40 border-b border-border/50">
-              <tr>
-                <th className="text-left px-3 py-2.5 text-xs font-medium text-muted-foreground w-12">Preview</th>
-                <th className="text-left px-3 py-2.5 text-xs font-medium text-muted-foreground">Name</th>
-                <th className="text-left px-3 py-2.5 text-xs font-medium text-muted-foreground hidden sm:table-cell">Type</th>
-                <th className="text-left px-3 py-2.5 text-xs font-medium text-muted-foreground hidden sm:table-cell">Size</th>
-                <th className="text-left px-3 py-2.5 text-xs font-medium text-muted-foreground hidden md:table-cell">Device</th>
-                <th className="text-left px-3 py-2.5 text-xs font-medium text-muted-foreground">Uploaded</th>
-                <th className="text-right px-3 py-2.5 text-xs font-medium text-muted-foreground">Actions</th>
+            <thead>
+              <tr className="border-b border-border/60 bg-muted/30 text-left text-xs text-muted-foreground font-medium">
+                <th className="px-3 py-2 w-10"></th>
+                <th className="px-3 py-2">Name</th>
+                <th className="px-3 py-2 hidden sm:table-cell">Type</th>
+                <th className="px-3 py-2 hidden sm:table-cell">Size</th>
+                <th className="px-3 py-2 hidden md:table-cell">Device</th>
+                <th className="px-3 py-2">Time</th>
+                <th className="px-3 py-2 w-16 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-border/30">
+            <tbody className="divide-y divide-border/40">
               {paginatedUploads.map(upload => {
                 const globalIndex = filteredAndSortedUploads.findIndex(u => u.id === upload.id);
                 const isNew = newIds.has(upload.id);
                 const isImage = upload.mimeType.startsWith("image/");
                 return (
-                  <tr
-                    key={upload.id}
-                    className={`group hover:bg-muted/20 transition-colors ${isNew ? "bg-green-50/30 dark:bg-green-950/10" : ""}`}
-                  >
+                  <tr key={upload.id} className={`group hover:bg-muted/20 transition-colors ${isNew ? "bg-green-50/50 dark:bg-green-950/10" : ""}`}>
                     <td className="px-3 py-2">
                       <div
-                        className="w-10 h-10 rounded overflow-hidden bg-muted cursor-pointer border border-border/30 shrink-0 flex items-center justify-center"
+                        className="w-8 h-8 rounded overflow-hidden bg-muted flex items-center justify-center cursor-pointer shrink-0"
                         onClick={() => setSelectedIndex(globalIndex)}
                       >
                         {isImage ? (
@@ -606,7 +604,7 @@ export default function UploadGrid({
                     </td>
                     <td className="px-3 py-2">
                       <button
-                        className="text-left font-medium truncate max-w-[140px] sm:max-w-[220px] hover:text-primary transition-colors block"
+                        className="text-left font-medium truncate max-w-[120px] xs:max-w-[160px] sm:max-w-[220px] hover:text-primary transition-colors block text-xs sm:text-sm"
                         onClick={() => setSelectedIndex(globalIndex)}
                         title={upload.originalName}
                       >
@@ -660,14 +658,14 @@ export default function UploadGrid({
 
       {/* ── Client page of loaded set ─────────────────── */}
       {totalPages > 1 && (
-        <div className="flex justify-center items-center gap-2 mt-8">
-          <Button variant="outline" size="icon" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>
+        <div className="flex justify-center items-center gap-2 mt-6 sm:mt-8">
+          <Button variant="outline" size="icon" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="h-8 w-8">
             <ChevronLeft className="w-4 h-4" />
           </Button>
-          <span className="text-sm text-muted-foreground">
+          <span className="text-xs sm:text-sm text-muted-foreground">
             {t("uploadGrid.page")} {currentPage} {t("uploadGrid.of")} {totalPages}
           </span>
-          <Button variant="outline" size="icon" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}>
+          <Button variant="outline" size="icon" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} className="h-8 w-8">
             <ChevronRight className="w-4 h-4" />
           </Button>
         </div>
@@ -681,14 +679,14 @@ export default function UploadGrid({
             size="sm"
             onClick={loadMore}
             disabled={loadingMore || !nextCursor}
-            className="rounded-full"
+            className="rounded-full text-xs"
           >
             {loadingMore ? "Loading…" : `Load older uploads (${uploads.length} of ${serverTotal} loaded)`}
           </Button>
         </div>
       )}
 
-      {/* ── Dialogs ───────────────────────────────────── */}
+      {/* ── Dialogs ────────────────────────────────────── */}
       <ConfirmDialog
         open={deleteTarget !== null}
         onOpenChange={open => { if (!open) setDeleteTarget(null); }}
@@ -725,24 +723,24 @@ export default function UploadGrid({
         {selectedImage && selectedIndex !== null && (
           <motion.div
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/95 backdrop-blur-sm p-4 md:p-8"
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/95 backdrop-blur-sm p-2 sm:p-4 md:p-8"
             onClick={() => setSelectedIndex(null)}
           >
-            <Button variant="ghost" size="icon" className="absolute top-4 right-4 text-white hover:bg-white/20 rounded-full z-[60]" onClick={() => setSelectedIndex(null)}>
-              <X className="w-6 h-6" />
+            <Button variant="ghost" size="icon" className="absolute top-3 right-3 sm:top-4 sm:right-4 text-white hover:bg-white/20 rounded-full z-[60] h-9 w-9" onClick={() => setSelectedIndex(null)}>
+              <X className="w-5 h-5 sm:w-6 sm:h-6" />
             </Button>
 
             {filteredAndSortedUploads.length > 1 && (
               <>
                 <Button variant="ghost" size="icon"
-                  className="absolute left-2 md:left-8 top-1/2 -translate-y-1/2 text-white hover:bg-white/20 rounded-full z-[60] h-10 w-10 md:h-14 md:w-14"
+                  className="absolute left-1 sm:left-2 md:left-8 top-1/2 -translate-y-1/2 text-white hover:bg-white/20 rounded-full z-[60] h-9 w-9 sm:h-10 sm:w-10 md:h-14 md:w-14"
                   onClick={e => { e.stopPropagation(); setSelectedIndex(i => (i! === 0 ? filteredAndSortedUploads.length - 1 : i! - 1)); }}>
-                  <ChevronLeft className="w-8 h-8 md:w-12 md:h-12" />
+                  <ChevronLeft className="w-6 h-6 sm:w-8 sm:h-8 md:w-12 md:h-12" />
                 </Button>
                 <Button variant="ghost" size="icon"
-                  className="absolute right-2 md:right-8 top-1/2 -translate-y-1/2 text-white hover:bg-white/20 rounded-full z-[60] h-10 w-10 md:h-14 md:w-14"
+                  className="absolute right-1 sm:right-2 md:right-8 top-1/2 -translate-y-1/2 text-white hover:bg-white/20 rounded-full z-[60] h-9 w-9 sm:h-10 sm:w-10 md:h-14 md:w-14"
                   onClick={e => { e.stopPropagation(); setSelectedIndex(i => (i! === filteredAndSortedUploads.length - 1 ? 0 : i! + 1)); }}>
-                  <ChevronRight className="w-8 h-8 md:w-12 md:h-12" />
+                  <ChevronRight className="w-6 h-6 sm:w-8 sm:h-8 md:w-12 md:h-12" />
                 </Button>
               </>
             )}
@@ -751,26 +749,37 @@ export default function UploadGrid({
               key={selectedImage.id}
               initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}
               transition={{ duration: 0.2 }}
-              className="relative max-w-full max-h-full flex flex-col items-center justify-center outline-none pb-28"
+              className="relative max-w-full max-h-full flex flex-col items-center justify-center outline-none pb-24 sm:pb-28 px-2"
               onClick={e => e.stopPropagation()}
             >
               {selectedImage.mimeType.startsWith("image/") ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={`/api/admin/uploads/${selectedImage.id}`} alt={selectedImage.originalName} className="max-w-full max-h-[70vh] object-contain rounded-md shadow-2xl bg-black" />
+                <img src={`/api/admin/uploads/${selectedImage.id}`} alt={selectedImage.originalName} className="max-w-full max-h-[55vh] sm:max-h-[70vh] object-contain rounded-md shadow-2xl bg-black" />
               ) : (
-                <video src={`/api/admin/uploads/${selectedImage.id}`} className="max-w-full max-h-[70vh] rounded-md shadow-2xl bg-black outline-none" controls playsInline autoPlay />
+                <video src={`/api/admin/uploads/${selectedImage.id}`} className="max-w-full max-h-[55vh] sm:max-h-[70vh] rounded-md shadow-2xl bg-black outline-none" controls playsInline autoPlay />
               )}
-              <div className="mt-4 text-center text-white/90">
-                <p className="font-medium text-lg drop-shadow-md">{selectedImage.originalName}</p>
-                <p className="text-sm text-white/70 drop-shadow-md">
-                  {formatSize(selectedImage.size)} · {deviceLabel(selectedImage.deviceId)} · {format(new Date(selectedImage.createdAt), "MMM d, yyyy h:mm a")}
+              <div className="mt-3 sm:mt-4 text-center text-white/90 max-w-sm sm:max-w-lg px-2">
+                <p className="font-medium text-sm sm:text-lg drop-shadow-md truncate">{selectedImage.originalName}</p>
+                <p className="text-xs sm:text-sm text-white/70 drop-shadow-md mt-0.5">
+                  {formatSize(selectedImage.size)} · {deviceLabel(selectedImage.deviceId)} · {format(new Date(selectedImage.createdAt), "MMM d, h:mm a")}
                 </p>
+                <div className="flex items-center justify-center gap-2 mt-2">
+                  <Button size="sm" variant="secondary" className="h-7 text-xs px-2.5 rounded-full" asChild>
+                    <a href={`/api/admin/uploads/${selectedImage.id}`} download={selectedImage.originalName} target="_blank">
+                      <Download className="w-3.5 h-3.5 mr-1" /> Download
+                    </a>
+                  </Button>
+                  <Button size="sm" variant="destructive" className="h-7 text-xs px-2.5 rounded-full"
+                    onClick={() => setDeleteTarget({ id: selectedImage.id, name: selectedImage.originalName })}>
+                    <Trash2 className="w-3.5 h-3.5 mr-1" /> Delete
+                  </Button>
+                </div>
               </div>
             </motion.div>
 
             {/* Thumbnail strip — window around selection (not full list) */}
-            <div className="absolute bottom-6 left-0 right-0 flex justify-center w-full z-50 pointer-events-auto" onClick={e => e.stopPropagation()}>
-              <div className="flex gap-2 md:gap-3 px-4 overflow-x-auto pb-4 max-w-[90vw] snap-x scroll-smooth" style={{ scrollbarWidth: "none" }}>
+            <div className="absolute bottom-4 sm:bottom-6 left-0 right-0 flex justify-center w-full z-50 pointer-events-auto" onClick={e => e.stopPropagation()}>
+              <div className="flex gap-1.5 sm:gap-2 md:gap-3 px-3 sm:px-4 overflow-x-auto pb-2 sm:pb-4 max-w-[95vw] sm:max-w-[90vw] snap-x scroll-smooth" style={{ scrollbarWidth: "none" }}>
                 {(() => {
                   const total = filteredAndSortedUploads.length;
                   const windowSize = 21;
@@ -784,9 +793,9 @@ export default function UploadGrid({
                     id={`thumb-${i}`}
                     key={u.id}
                     onClick={() => setSelectedIndex(i)}
-                    className={`relative h-16 w-16 md:h-20 md:w-20 flex-shrink-0 rounded-md overflow-hidden border-2 transition-all transform snap-center ${
+                    className={`relative h-12 w-12 sm:h-16 sm:w-16 md:h-20 md:w-20 flex-shrink-0 rounded-md overflow-hidden border-2 transition-all transform snap-center ${
                       i === selectedIndex
-                        ? "border-white ring-2 ring-white/20 ring-offset-2 ring-offset-black scale-110 opacity-100 z-10"
+                        ? "border-white ring-2 ring-white/20 ring-offset-2 ring-offset-black scale-105 sm:scale-110 opacity-100 z-10"
                         : "border-transparent opacity-40 hover:opacity-100 hover:scale-105"
                     }`}
                   >
@@ -795,7 +804,7 @@ export default function UploadGrid({
                       <img src={`/api/admin/events/${eventId}/thumb/${u.id}`} alt={u.originalName} loading="lazy" className="object-cover w-full h-full" />
                     ) : (
                       <div className="w-full h-full bg-muted flex items-center justify-center">
-                        <Film className="w-5 h-5 text-muted-foreground" />
+                        <Film className="w-4 h-4 sm:w-5 sm:h-5 text-muted-foreground" />
                       </div>
                     )}
                   </button>

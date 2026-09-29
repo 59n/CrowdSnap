@@ -19,7 +19,8 @@
     "allEvents": "Todos",
     "noEventsInFilter": "No events in this filter.",
     "showAllEvents": "Show all events",
-    "guestsBlocked": "Guests blocked"
+    "guestsBlocked": "Guests blocked",
+    "testingModeOn": "Límites desactivados"
   },
   "createEvent": {
     "title": "Crear Nuevo Evento",
@@ -124,7 +125,11 @@
     "rateLimitedDesc": "Estás subiendo muy rápido. Reintentaremos en unos {seconds} segundos.",
     "rateLimitedGiveUp": "Algunas fotos no se pudieron subir. Espera unos {seconds} segundos e inténtalo de nuevo.",
     "rateLimitedWaiting": "Demasiado rápido — esperando ~{seconds}s y continuamos solos…",
-    "partialUpload": "Subidas {ok}, {fail} pendientes — pulsa de nuevo o espera el reintento."
+    "partialUpload": "Subidas {ok}, {fail} pendientes — pulsa de nuevo o espera el reintento.",
+    "slowConnection": "Tu conexión va lenta. Los archivos siguen subiendo — no cierres esta página.",
+    "preparing": "Preparando los archivos para subirlos más rápido…",
+    "failedSome": "{count} no se subieron. Siguen en la lista — pulsa Subir para intentarlo de nuevo.",
+    "failedConnection": "No se alcanzó el servidor. Revisa tus datos móviles y pulsa Subir de nuevo."
   },
   "editEvent": {
     "title": "Editar Evento",
@@ -142,6 +147,8 @@
     "slugTaken": "Esta URL ya está en uso por otro evento.",
     "guestGallery": "Galería de invitados",
     "guestGalleryDesc": "Permite a los invitados ver y eliminar sus propias fotos.",
+    "testingMode": "Desactivar límites de subida (pruebas)",
+    "testingModeDesc": "Omite los límites de subida por red y por evento solo para este evento. El inicio de sesión, la comprobación de archivos y el acceso de admin siguen activos. Desactívalo antes de que lleguen los invitados.",
     "success": "Evento actualizado exitosamente",
     "error": "Error al actualizar evento",
     "heroBanner": "Hero background (optional)",

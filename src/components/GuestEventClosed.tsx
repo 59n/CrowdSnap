@@ -2,7 +2,7 @@ import Link from "next/link";
 import { format } from "date-fns";
 import { Camera, CalendarOff, PauseCircle, Archive, Home } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import GuestHeroBanner from "@/components/GuestHeroBanner";
+import GuestHeroBanner, { GuestHeroIntroProvider } from "@/components/GuestHeroBanner";
 import type { EventStatus } from "@/lib/events";
 
 type Dict = {
@@ -60,6 +60,7 @@ export default function GuestEventClosed({
           "The host has paused uploads for now. Please try again later or ask the host.";
 
   return (
+    <GuestHeroIntroProvider enabled={hasBannerImage}>
     <div className="relative min-h-screen bg-background flex flex-col overflow-x-hidden">
       {hasBannerImage ? (
         <GuestHeroBanner eventId={eventId} muted cacheKey={bannerCacheKey} />
@@ -72,7 +73,7 @@ export default function GuestEventClosed({
 
       <main
         className={`relative z-10 flex-1 flex flex-col items-center justify-center px-5 pb-16 ${
-          hasBannerImage ? "pt-24" : "pt-12"
+          hasBannerImage ? "guest-hero-closed-copy" : "pt-12"
         }`}
       >
         <div className="w-full max-w-md text-center">
@@ -112,5 +113,6 @@ export default function GuestEventClosed({
         </div>
       </main>
     </div>
+    </GuestHeroIntroProvider>
   );
 }

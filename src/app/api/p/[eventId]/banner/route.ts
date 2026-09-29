@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import fs from 'fs';
-import { Readable } from 'stream';
+import { webStreamFromNode } from '@/lib/web-stream';
+import { debugLog } from '@/lib/debug-log';
 import prisma from '@/lib/db';
 import { resolveReadPath, isSafeEventId } from '@/lib/storage';
 import { expirePastEvents } from '@/lib/events';
@@ -25,37 +26,45 @@ export async function GET(
     const bannerPath = resolveReadPath(`events/${eventId}/metadata/banner.bin`);
     const metaPath = resolveReadPath(`events/${eventId}/metadata/banner_meta.json`);
 
-    if (!bannerPath || !metaPath) {
+    if (!bannerPath) {
+      debugLog('warn', 'banner.missing', { eventId });
       return new NextResponse(null, {
         status: 404,
         headers: { 'Cache-Control': 'no-store' },
       });
     }
 
-    const { mimeType } = JSON.parse(fs.readFileSync(metaPath, 'utf8'));
+    let mimeType = 'image/jpeg';
+    if (metaPath) {
+      try {
+        mimeType = JSON.parse(fs.readFileSync(metaPath, 'utf8')).mimeType || mimeType;
+      } catch {
+        /* banner file alone is enough */
+      }
+    }
     const stat = fs.statSync(bannerPath);
     const etag = `"b-${stat.mtimeMs.toFixed(0)}-${stat.size}"`;
+    // Versioned by ?v=mtime on the page. A slow phone should reuse it, not
+    // re-download the whole hero on every visit.
+    const cache = 'public, max-age=604800, immutable';
 
     if (request.headers.get('if-none-match') === etag) {
       return new NextResponse(null, {
         status: 304,
-        headers: {
-          ETag: etag,
-          'Cache-Control': 'public, max-age=0, must-revalidate',
-        },
+        headers: { ETag: etag, 'Cache-Control': cache },
       });
     }
 
     const nodeStream = fs.createReadStream(bannerPath);
-    const webStream = Readable.toWeb(nodeStream);
+    const webStream = webStreamFromNode(nodeStream);
 
     return new NextResponse(webStream as unknown as BodyInit, {
       status: 200,
       headers: {
-        'Content-Type': mimeType || 'image/jpeg',
+        'Content-Type': mimeType,
         'Content-Length': stat.size.toString(),
         ETag: etag,
-        'Cache-Control': 'public, max-age=0, must-revalidate',
+        'Cache-Control': cache,
       },
     });
   } catch {

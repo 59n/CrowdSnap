@@ -17,13 +17,14 @@ import {
   Eye,
   EyeOff,
   AlertTriangle,
+  Bell,
 } from "lucide-react";
 
 type FieldMeta = {
   key: string;
   label: string;
   description: string;
-  category: "storage" | "auth" | "server" | "tunnel";
+  category: "storage" | "auth" | "server" | "tunnel" | "alerts";
   type: "string" | "number" | "password" | "path";
   secret?: boolean;
   restartRequired?: boolean;
@@ -55,6 +56,12 @@ const CATEGORY_META: Record<
     description: "Pangolin / Newt settings used by docker compose.",
     icon: <Network className="w-4 h-4" />,
   },
+  alerts: {
+    title: "Critical alerts (brrr)",
+    description:
+      "Push a critical alert to your phone if the SSD unplugs, the site goes down, or storage fills up. Paste the webhook from the brrr app.",
+    icon: <Bell className="w-4 h-4" />,
+  },
 };
 
 export default function SettingsForm() {
@@ -65,6 +72,8 @@ export default function SettingsForm() {
   const [currentPassword, setCurrentPassword] = useState("");
   const [showSecrets, setShowSecrets] = useState<Record<string, boolean>>({});
   const [dirty, setDirty] = useState(false);
+  const [webhookConfigured, setWebhookConfigured] = useState(false);
+  const [testingAlert, setTestingAlert] = useState(false);
 
   useEffect(() => {
     fetch("/api/admin/settings")
@@ -87,13 +96,14 @@ export default function SettingsForm() {
           }
         }
         setValues(next);
+        setWebhookConfigured(Boolean(data.values?.BRRR_WEBHOOK_URL__set));
       })
       .catch(() => toast.error("Could not load settings"))
       .finally(() => setLoading(false));
   }, []);
 
   const byCategory = useMemo(() => {
-    const order: FieldMeta["category"][] = ["storage", "auth", "server", "tunnel"];
+    const order: FieldMeta["category"][] = ["storage", "alerts", "auth", "server", "tunnel"];
     return order.map((cat) => ({
       cat,
       meta: CATEGORY_META[cat],
@@ -104,6 +114,27 @@ export default function SettingsForm() {
   function updateField(key: string, value: string) {
     setValues((prev) => ({ ...prev, [key]: value }));
     setDirty(true);
+  }
+
+  async function sendTestAlert() {
+    setTestingAlert(true);
+    try {
+      const res = await fetch("/api/admin/alerts/test", { method: "POST" });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast.error(data.error || "Test alert failed");
+        return;
+      }
+      if (data.result === "noop") {
+        toast.error("Save a brrr webhook first, then try again");
+        return;
+      }
+      toast.success("Test alert sent — check your phone");
+    } catch {
+      toast.error("Test alert request failed");
+    } finally {
+      setTestingAlert(false);
+    }
   }
 
   async function handleSave(e: React.FormEvent) {
@@ -155,6 +186,9 @@ export default function SettingsForm() {
       });
       setDirty(false);
       setCurrentPassword("");
+      if (typeof data.values?.BRRR_WEBHOOK_URL__set === "boolean") {
+        setWebhookConfigured(data.values.BRRR_WEBHOOK_URL__set);
+      }
 
       if (data.restartRequired?.length) {
         toast.success(
@@ -255,6 +289,30 @@ export default function SettingsForm() {
                   </div>
                 );
               })}
+              {cat === "alerts" && (
+                <div className="pt-1">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="gap-2"
+                    disabled={testingAlert || !webhookConfigured}
+                    onClick={sendTestAlert}
+                  >
+                    {testingAlert ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <Bell className="w-3.5 h-3.5" />
+                    )}
+                    {testingAlert ? "Sending…" : "Send test notification"}
+                  </Button>
+                  {!webhookConfigured && (
+                    <p className="text-[11px] text-muted-foreground mt-1.5">
+                      Save a webhook first. Find it in the brrr iPhone app.
+                    </p>
+                  )}
+                </div>
+              )}
             </CardContent>
           </Card>
         )

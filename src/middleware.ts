@@ -12,7 +12,7 @@ export default withAuth(
         // Protect admin UI + admin APIs (except NextAuth itself)
         if (path.startsWith("/api/admin") || path.startsWith("/admin")) {
           if (path.startsWith("/admin/login")) return true;
-          return token?.role === "ADMIN" || !!token;
+          return token?.role === "ADMIN";
         }
         return true;
       },

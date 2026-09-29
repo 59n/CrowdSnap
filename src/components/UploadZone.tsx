@@ -7,6 +7,10 @@ import { Button } from "./ui/button";
 import { Progress } from "./ui/progress";
 import { toast } from "sonner";
 import { useTranslation } from "./TranslationProvider";
+import { isLikelyGuestMediaFile } from "@/lib/guest-media";
+import { uploadLooksSlow } from "@/lib/upload-pace";
+import { shrinkGuestPhoto } from "@/lib/guest-photo";
+import { UPLOAD_CHUNK_BYTES } from "@/lib/upload-chunk-order";
 
 interface UploadZoneProps {
   eventId: string;
@@ -26,11 +30,6 @@ function PreviewImage({ file }: { file: File }) {
   return <img src={url} alt="preview" className="w-full h-full object-cover rounded-md" />;
 }
 
-const ALLOWED_TYPES = new Set([
-  "image/jpeg", "image/png", "image/webp", "image/heic", "image/heif", "image/gif",
-  "video/mp4", "video/quicktime", "video/webm",
-]);
-
 /** Keep retrying 429 until window resets — not a tiny fixed attempt count */
 const MAX_429_RETRIES = 12;
 const DEFAULT_RETRY_MS = 8_000;
@@ -45,6 +44,15 @@ function getOrCreateDeviceId(): string {
     localStorage.setItem("crowdsnap_device_id", id);
   }
   return id;
+}
+
+function clientLog(event: string, fields: Record<string, string | number | boolean | null>) {
+  fetch("/api/logs", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ event, ...fields }),
+    keepalive: true,
+  }).catch(() => {});
 }
 
 function sleep(ms: number) {
@@ -66,22 +74,150 @@ type UploadAttempt =
   | { ok: true; uploads?: unknown[] }
   | { ok: false; status: number; error?: string; retryAfterMs?: number };
 
+function postSlice(
+  url: string,
+  body: Blob,
+  headers: Record<string, string>,
+  onSlow: () => void,
+  onBytes: (loaded: number) => void,
+  started: number,
+  loadedBefore: number,
+  total: number
+): Promise<UploadAttempt> {
+  return new Promise((resolve) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", url, true);
+    xhr.timeout = 120_000;
+    for (const [key, value] of Object.entries(headers)) {
+      xhr.setRequestHeader(key, value);
+    }
+    xhr.upload.onprogress = (event) => {
+      const loaded = loadedBefore + event.loaded;
+      onBytes(loaded);
+      if (uploadLooksSlow(loaded, Date.now() - started, total)) {
+        onSlow();
+      }
+    };
+    xhr.onload = () => {
+      let payload: { error?: string; uploads?: unknown[] } = {};
+      try {
+        payload = JSON.parse(xhr.responseText);
+      } catch {
+        /* ignore */
+      }
+      if (xhr.status >= 200 && xhr.status < 300) {
+        resolve({ ok: true, uploads: payload.uploads });
+        return;
+      }
+      if (xhr.status === 429) {
+        resolve({
+          ok: false,
+          status: 429,
+          error: payload.error,
+          retryAfterMs: retryAfterMs(xhr),
+        });
+        return;
+      }
+      resolve({ ok: false, status: xhr.status, error: payload.error });
+    };
+    xhr.onerror = () => resolve({ ok: false, status: 0, error: "network" });
+    xhr.ontimeout = () => resolve({ ok: false, status: 0, error: "network" });
+    xhr.send(body);
+  });
+}
+
+async function uploadChunked(
+  eventId: string,
+  file: File,
+  deviceId: string,
+  onProgress: (pct: number) => void,
+  onSlow: () => void
+): Promise<UploadAttempt> {
+  const uploadId = crypto.randomUUID();
+  const count = Math.ceil(file.size / UPLOAD_CHUNK_BYTES);
+  const started = Date.now();
+  let last: UploadAttempt = { ok: false, status: 0, error: "network" };
+  clientLog("upload.start", {
+    name: file.name,
+    size: file.size,
+    chunks: count,
+    type: file.type || "unknown",
+  });
+
+  for (let index = 0; index < count; index++) {
+    const slice = file.slice(
+      index * UPLOAD_CHUNK_BYTES,
+      Math.min(file.size, (index + 1) * UPLOAD_CHUNK_BYTES)
+    );
+    let attempt = 0;
+    let done = false;
+    while (attempt < 4 && !done) {
+      last = await postSlice(
+        `/api/upload/${eventId}`,
+        slice,
+        {
+          "content-type": "application/octet-stream",
+          "x-device-id": deviceId,
+          "x-upload-id": uploadId,
+          "x-chunk-index": String(index),
+          "x-chunk-count": String(count),
+          "x-file-size": String(file.size),
+          "x-file-name": file.name,
+          "x-file-type": file.type || "application/octet-stream",
+        },
+        onSlow,
+        (loaded) => onProgress(Math.min(100, (loaded / file.size) * 100)),
+        started,
+        index * UPLOAD_CHUNK_BYTES,
+        file.size
+      );
+      if (last.ok) {
+        onProgress(((index + 1) / count) * 100);
+        done = true;
+        break;
+      }
+      if (last.status === 429) return last;
+      attempt++;
+      await sleep(1000 * attempt);
+    }
+    if (!done) {
+      clientLog("upload.chunk_failed", {
+        name: file.name,
+        size: file.size,
+        index,
+        status: "status" in last ? last.status : 0,
+        error: "error" in last ? last.error || "" : "",
+      });
+      return last;
+    }
+  }
+  return last;
+}
+
 function uploadOnce(
   eventId: string,
   file: File,
   deviceId: string,
-  onProgress: (pct: number) => void
+  onProgress: (pct: number) => void,
+  onSlow: () => void
 ): Promise<UploadAttempt> {
+  if (file.size > UPLOAD_CHUNK_BYTES) {
+    return uploadChunked(eventId, file, deviceId, onProgress, onSlow);
+  }
   return new Promise((resolve) => {
     const formData = new FormData();
     formData.append("file", file);
     const xhr = new XMLHttpRequest();
     xhr.open("POST", `/api/upload/${eventId}`, true);
     xhr.setRequestHeader("x-device-id", deviceId);
+    const started = Date.now();
 
     xhr.upload.onprogress = (event) => {
       if (event.lengthComputable) {
         onProgress((event.loaded / event.total) * 100);
+        if (uploadLooksSlow(event.loaded, Date.now() - started, event.total)) {
+          onSlow();
+        }
       }
     };
 
@@ -135,6 +271,20 @@ export default function UploadZone({ eventId }: UploadZoneProps) {
   const [progress, setProgress] = useState(0);
   const [uploadComplete, setUploadComplete] = useState(false);
   const [statusLine, setStatusLine] = useState<string | null>(null);
+  const [slowConnection, setSlowConnection] = useState(false);
+  const [failedNotice, setFailedNotice] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!uploading) return;
+    const id = window.setInterval(() => {
+      clientLog("upload.heartbeat", {
+        progress,
+        files: files.length,
+        names: files.map((f) => f.name).join(", ").slice(0, 200),
+      });
+    }, 5_000);
+    return () => window.clearInterval(id);
+  }, [uploading, progress, files]);
   const deviceIdRef = useRef<string>("");
 
   useEffect(() => {
@@ -151,28 +301,27 @@ export default function UploadZone({ eventId }: UploadZoneProps) {
     setIsDragging(false);
   }, []);
 
+  const handleFilesSelected = useCallback((newFiles: File[]) => {
+    const valid = newFiles.filter((f) => isLikelyGuestMediaFile(f));
+    const invalid = newFiles.filter((f) => !isLikelyGuestMediaFile(f));
+    if (invalid.length) toast.error(t("guest.someSkipped"));
+    setSkippedFiles((prev) => [...prev, ...invalid]);
+    setFiles((prev) => [...prev, ...valid]);
+  }, [t]);
+
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
     if (e.dataTransfer.files?.length) {
       handleFilesSelected(Array.from(e.dataTransfer.files));
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [handleFilesSelected]);
 
   const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files?.length) {
       handleFilesSelected(Array.from(e.target.files));
       e.target.value = "";
     }
-  };
-
-  const handleFilesSelected = (newFiles: File[]) => {
-    const valid = newFiles.filter((f) => ALLOWED_TYPES.has(f.type));
-    const invalid = newFiles.filter((f) => !ALLOWED_TYPES.has(f.type));
-    if (invalid.length) toast.error(t("guest.someSkipped"));
-    setSkippedFiles((prev) => [...prev, ...invalid]);
-    setFiles((prev) => [...prev, ...valid]);
   };
 
   const removeFile = (index: number) => {
@@ -185,11 +334,24 @@ export default function UploadZone({ eventId }: UploadZoneProps) {
     setUploading(true);
     setProgress(0);
     setStatusLine(null);
+    setSlowConnection(false);
+    setFailedNotice(null);
 
-    const queue = [...files];
+    const portions = new Array(files.length).fill(0);
+    const queue: File[] = [];
+    setStatusLine(t("guest.preparing"));
+    for (const file of files) {
+      try {
+        queue.push(await shrinkGuestPhoto(file));
+      } catch {
+        queue.push(file);
+      }
+    }
+    setStatusLine(null);
     let successCount = 0;
     let failCount = 0;
     let rateLimitedCount = 0;
+    let networkFailCount = 0;
     const allUploadedItems: unknown[] = [];
     const failedFiles: File[] = [];
 
@@ -251,7 +413,7 @@ export default function UploadZone({ eventId }: UploadZoneProps) {
       }
     };
 
-    const uploadWithRetry = async (file: File): Promise<boolean> => {
+    const uploadWithRetry = async (file: File, index: number): Promise<boolean> => {
       let attempt = 0;
 
       while (attempt <= MAX_429_RETRIES) {
@@ -261,9 +423,13 @@ export default function UploadZone({ eventId }: UploadZoneProps) {
           eventId,
           file,
           deviceIdRef.current,
-          () => {
-            /* per-file progress folded into slot completion for large batches */
-          }
+          (filePct) => {
+            portions[index] = filePct;
+            const sum = portions.reduce((acc, n) => acc + n, 0);
+            const overall = sum / portions.length;
+            setProgress(overall > 0 && overall < 1 ? 1 : Math.min(99, Math.round(overall)));
+          },
+          () => setSlowConnection(true)
         );
 
         if (result.ok) {
@@ -284,8 +450,15 @@ export default function UploadZone({ eventId }: UploadZoneProps) {
           return false;
         }
 
+        // Flaky venue Wi-Fi: retry a couple of times before giving up.
+        if ((result.status === 0 || result.error === "network") && attempt < 2) {
+          attempt++;
+          await sleep(1500);
+          continue;
+        }
+
         if (result.error === "network") {
-          toast.error(`${t("guest.networkError")} ${file.name}`);
+          networkFailCount++;
         } else if (result.error) {
           toast.error(result.error);
         } else {
@@ -302,7 +475,7 @@ export default function UploadZone({ eventId }: UploadZoneProps) {
       while (cursor < queue.length) {
         const i = cursor++;
         const file = queue[i];
-        const ok = await uploadWithRetry(file);
+        const ok = await uploadWithRetry(file, i);
         if (ok) successCount++;
         else {
           failCount++;
@@ -322,6 +495,22 @@ export default function UploadZone({ eventId }: UploadZoneProps) {
 
     // Keep only failed files in the queue so the user can retry
     setFiles(failedFiles);
+    clientLog(failCount > 0 ? "upload.finished_with_errors" : "upload.finished", {
+      ok: successCount,
+      failed: failCount,
+      network: networkFailCount,
+      rateLimited: rateLimitedCount,
+    });
+    if (failCount > 0) {
+      setFailedNotice(
+        networkFailCount > 0 && successCount === 0
+          ? t("guest.failedConnection")
+          : t("guest.failedSome", { count: failCount })
+      );
+    } else {
+      setFailedNotice(null);
+      setSlowConnection(false);
+    }
 
     if (successCount > 0 && failCount === 0) {
       toast.success(`${t("guest.success")} ${successCount} ${t("guest.files")}`);
@@ -349,7 +538,7 @@ export default function UploadZone({ eventId }: UploadZoneProps) {
 
   return (
     <div className="w-full max-w-xl mx-auto space-y-4">
-      <motion.div
+      {!uploading && <motion.div
         animate={{ scale: isDragging ? 1.02 : 1 }}
         transition={{ type: "spring", stiffness: 300, damping: 20 }}
         className={`relative flex flex-col items-center justify-center w-full rounded-2xl border-2 border-dashed transition-all duration-200 overflow-hidden ${
@@ -360,7 +549,7 @@ export default function UploadZone({ eventId }: UploadZoneProps) {
         style={{ minHeight: "13rem" }}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
-        onDrop={handleDrop}
+        onDrop={uploading ? undefined : handleDrop}
       >
         <div className="absolute inset-0 bg-gradient-to-br from-primary/3 to-transparent pointer-events-none" />
 
@@ -408,11 +597,11 @@ export default function UploadZone({ eventId }: UploadZoneProps) {
               multiple
               onChange={handleFileInput}
               disabled={uploading}
-              accept="image/*,video/mp4,video/quicktime,video/webm"
+              accept="image/*,video/*,.heic,.heif,.avif,.mov,.mp4,.m4v,.3gp,.webm"
             />
           </>
         )}
-      </motion.div>
+      </motion.div>}
 
       <AnimatePresence>
         {files.length > 0 && (
@@ -433,6 +622,13 @@ export default function UploadZone({ eventId }: UploadZoneProps) {
               </Button>
             </div>
 
+            {failedNotice && !uploading && (
+              <div className="px-4 py-2.5 border-b border-destructive/20 bg-destructive/5 flex gap-2 items-start">
+                <AlertCircle className="w-4 h-4 text-destructive shrink-0 mt-0.5" />
+                <p className="text-xs font-medium text-destructive">{failedNotice}</p>
+              </div>
+            )}
+
             {uploading && (
               <div className="px-4 py-2.5 border-b border-border/30 bg-muted/10 space-y-1.5">
                 <div className="flex justify-between text-xs text-muted-foreground">
@@ -440,6 +636,11 @@ export default function UploadZone({ eventId }: UploadZoneProps) {
                   <span>{progress}%</span>
                 </div>
                 <Progress value={progress} className="h-1.5" />
+                {slowConnection && (
+                  <p className="text-xs font-medium text-amber-900 bg-amber-50 border border-amber-200 rounded-md px-2 py-1.5">
+                    {t("guest.slowConnection")}
+                  </p>
+                )}
                 {statusLine && (
                   <p className="text-xs font-medium text-amber-800 bg-amber-50 border border-amber-200 rounded-md px-2 py-1.5">
                     {statusLine}

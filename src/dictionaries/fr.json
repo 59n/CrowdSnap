@@ -19,7 +19,8 @@
     "allEvents": "Tous",
     "noEventsInFilter": "No events in this filter.",
     "showAllEvents": "Show all events",
-    "guestsBlocked": "Guests blocked"
+    "guestsBlocked": "Guests blocked",
+    "testingModeOn": "Limites désactivées"
   },
   "createEvent": {
     "title": "Créer un Événement",
@@ -124,7 +125,11 @@
     "rateLimitedDesc": "Vous envoyez très vite. Nouvel essai automatique dans environ {seconds} secondes.",
     "rateLimitedGiveUp": "Certaines photos n'ont pas pu être envoyées. Attendez environ {seconds} secondes puis réessayez.",
     "rateLimitedWaiting": "Trop rapide — pause d’environ {seconds}s puis reprise automatique…",
-    "partialUpload": "{ok} envoyées, {fail} en attente — renvoyez ou attendez le nouvel essai."
+    "partialUpload": "{ok} envoyées, {fail} en attente — renvoyez ou attendez le nouvel essai.",
+    "slowConnection": "Votre connexion semble lente. Les fichiers partent encore — gardez cette page ouverte.",
+    "preparing": "Préparation des fichiers pour un envoi plus rapide…",
+    "failedSome": "{count} n'ont pas été envoyées. Elles restent dans la liste — touchez Envoyer pour réessayer.",
+    "failedConnection": "Serveur injoignable. Vérifiez vos données mobiles, puis touchez Envoyer."
   },
   "editEvent": {
     "title": "Modifier Événement",
@@ -142,6 +147,8 @@
     "slugTaken": "Cette URL est déjà utilisée par un autre événement.",
     "guestGallery": "Galerie des invités",
     "guestGalleryDesc": "Permet aux invités de voir et supprimer leurs propres photos.",
+    "testingMode": "Désactiver les limites d’envoi (test)",
+    "testingModeDesc": "Ignore les limites d’envoi par réseau et par événement, pour cet événement seulement. Connexion, contrôle des fichiers et accès admin restent actifs. À désactiver avant l’arrivée des invités.",
     "success": "Événement mis à jour avec succès",
     "error": "Erreur lors de la mise à jour de l'événement",
     "heroBanner": "Hero background (optional)",

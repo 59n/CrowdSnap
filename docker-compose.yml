@@ -8,20 +8,16 @@ services:
       - ./storage:/app/storage
       # Persist admin settings (settings.json) across container restarts
       - ./data:/app/data
-      # External SSD (STORAGE_REPLICA_PATH). Requires the drive mounted on the Mac
-      # and shared with Docker Desktop (Settings → Resources → File sharing).
-      # create_host_path: false — do not fake an empty /Volumes/1TB if unplugged.
-      - type: bind
-        source: /Volumes/1TB
-        target: /Volumes/1TB
-        bind:
-          create_host_path: false
+      # Replica SSD bind lives in docker-compose.ssd.yml and is attached by
+      # scripts/ssd-watch.sh only when /Volumes/1TB is actually mounted.
+      # Putting it here would take the site down if the drive is unplugged.
     env_file:
       - .env
     environment:
       # Host .env uses localhost for `next dev` / tools on the Mac.
       # Inside Compose, Postgres is reachable only as the service name "db".
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}?schema=public
+      PG_POOL_MAX: 50
     depends_on:
       - db
     restart: unless-stopped

@@ -15,41 +15,43 @@ export default async function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const [session, locale] = await Promise.all([
-    getServerSession(authOptions),
-    getLocale(),
-  ]);
+  const session = await getServerSession(authOptions);
 
   if (!session || session.user?.role !== "ADMIN") {
     redirect("/admin/login");
   }
 
+  const locale = await getLocale();
   const dict = await getDictionary(locale);
   const t = dict.admin;
 
   return (
     <div className="min-h-screen bg-background flex flex-col md:flex-row">
       <aside className="w-full md:w-60 bg-sidebar border-b md:border-r md:border-b-0 border-sidebar-border md:min-h-screen flex flex-col md:sticky md:top-0 md:h-screen">
-        <div className="flex items-center gap-2.5 px-5 py-4 border-b border-sidebar-border">
-          <div className="flex items-center justify-center w-7 h-7 rounded-md bg-primary">
+        <div className="flex items-center gap-2.5 px-4 py-3 sm:px-5 sm:py-4 border-b border-sidebar-border">
+          <div className="flex items-center justify-center w-7 h-7 rounded-md bg-primary shrink-0">
             <Camera className="w-4 h-4 text-primary-foreground" />
           </div>
           <span className="font-semibold text-sm tracking-tight text-sidebar-foreground">
             CrowdSnap
           </span>
-          <Link
-            href="/api/auth/signout"
-            className="md:hidden ml-auto p-1.5 rounded-md text-muted-foreground hover:text-destructive hover:bg-accent transition-colors"
-            aria-label="Sign out"
-          >
-            <LogOut className="w-4 h-4" />
-          </Link>
+          <div className="md:hidden ml-auto flex items-center gap-2">
+            <LanguageSwitcher />
+            <Link
+              href="/api/auth/signout"
+              className="p-1.5 rounded-md text-muted-foreground hover:text-destructive hover:bg-accent transition-colors"
+              aria-label="Sign out"
+            >
+              <LogOut className="w-4 h-4" />
+            </Link>
+          </div>
         </div>
 
-        <div className="flex-1 px-3 py-3 overflow-y-auto">
+        <div className="flex-1 px-3 py-2 sm:py-3 overflow-x-auto md:overflow-y-auto">
           <SidebarNav
             eventsLabel={t.events}
             createLabel={t.create}
+            telemetryLabel="Telemetry & Storage"
             settingsLabel={(dict as { settings?: { nav?: string } }).settings?.nav ?? "Settings"}
           />
         </div>
@@ -72,7 +74,7 @@ export default async function AdminLayout({
         </div>
       </aside>
 
-      <main className="flex-1 min-w-0 p-5 sm:p-7 lg:p-10 overflow-x-hidden">
+      <main className="flex-1 min-w-0 p-3.5 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto overflow-x-hidden">
         {children}
       </main>
     </div>

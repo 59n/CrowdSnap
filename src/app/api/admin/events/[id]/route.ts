@@ -8,6 +8,7 @@ import fs from 'fs';
 import path from 'path';
 import { isPastEndDate } from '@/lib/events';
 import { clampMaxFileSizeMB } from '@/lib/file-type';
+import { invalidateGuestShell } from '@/lib/guest-shell-cache';
 import { verifyPassword } from '@/lib/password';
 
 export async function PATCH(request: Request, props: { params: Promise<{ id: string }> }) {
@@ -26,6 +27,7 @@ export async function PATCH(request: Request, props: { params: Promise<{ id: str
       language,
       maxFileSizeMB,
       guestGalleryEnabled,
+      relaxSecurity,
       date,
       endDate,
       slug,
@@ -37,6 +39,7 @@ export async function PATCH(request: Request, props: { params: Promise<{ id: str
       language?: string;
       maxFileSizeMB?: number;
       guestGalleryEnabled?: boolean;
+      relaxSecurity?: boolean;
       date?: string;
       endDate?: string | null;
       slug?: string | null;
@@ -93,6 +96,7 @@ export async function PATCH(request: Request, props: { params: Promise<{ id: str
         where: { id: params.id },
         data,
       });
+      invalidateGuestShell(params.id);
       return NextResponse.json(event);
     }
 
@@ -119,6 +123,7 @@ export async function PATCH(request: Request, props: { params: Promise<{ id: str
     if (language !== undefined) data.language = language;
     if (maxFileSizeMB !== undefined) data.maxFileSizeMB = clampMaxFileSizeMB(maxFileSizeMB);
     if (guestGalleryEnabled !== undefined) data.guestGalleryEnabled = guestGalleryEnabled;
+    if (relaxSecurity !== undefined) data.relaxSecurity = Boolean(relaxSecurity);
     if (date) data.date = new Date(date);
     if (endDate !== undefined) data.endDate = endDate ? new Date(endDate) : null;
     if (slugValue !== undefined) data.slug = slugValue;
@@ -147,6 +152,7 @@ export async function PATCH(request: Request, props: { params: Promise<{ id: str
       data,
     });
 
+    invalidateGuestShell(params.id);
     return NextResponse.json(event);
   } catch (error) {
     console.error('Error updating event:', error);
@@ -182,6 +188,8 @@ export async function DELETE(request: Request, props: { params: Promise<{ id: st
     if (!event) {
       return NextResponse.json({ error: 'Not found' }, { status: 404 });
     }
+
+    invalidateGuestShell(event.id);
 
     // Delete all upload files (Mac + SSD)
     for (const upload of event.uploads) {

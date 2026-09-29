@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { execFileSync } from 'child_process';
+import { randomUUID } from 'crypto';
 import { getAppSettings } from '@/lib/settings';
 import { isSafeId, safeJoin, safeResolveUnder } from '@/lib/path-safe';
 
@@ -163,14 +164,27 @@ export function deleteUploadFiles(eventId: string, uploadId: string, storedName:
 export function isReplicaAvailable(): boolean {
   const rep = getReplicaPath();
   if (!rep) return false;
+  return isDistinctWritableReplica(rep, getPrimaryPath());
+}
+
+/** Require a real, separate filesystem and a successful synced write. */
+export function isDistinctWritableReplica(rep: string, primary: string): boolean {
   try {
-    if (!fs.existsSync(rep)) {
-      const parent = path.dirname(rep);
-      // Volume not present (SSD unplugged or not mounted into container)
-      if (!parent || parent === rep || !fs.existsSync(parent)) return false;
-      fs.mkdirSync(rep, { recursive: true });
+    // A Proxmox bind mount can leave a writable directory on the CT disk when
+    // the USB filesystem disappears. Never create the replica path or accept
+    // a path on the same filesystem as the primary store.
+    if (!fs.statSync(rep).isDirectory()) return false;
+    if (fs.statSync(rep).dev === fs.statSync(primary).dev) return false;
+    // access(W_OK) only checks permissions; a small synced write also catches
+    // a disconnected device behind a still-visible bind mount.
+    const probe = path.join(rep, `.crowdsnap-probe-${randomUUID()}`);
+    const fd = fs.openSync(probe, 'wx', 0o600);
+    try {
+      fs.fsyncSync(fd);
+    } finally {
+      fs.closeSync(fd);
+      fs.unlinkSync(probe);
     }
-    fs.accessSync(rep, fs.constants.W_OK);
     return true;
   } catch {
     return false;
@@ -330,11 +344,11 @@ function getStatfsDiskStats(dirPath: string): DiskStats | null {
  * In Docker Desktop, prefers `df` then sanitized statfs (virtiofs bsize lies).
  * Results are cached ~30s.
  */
-export function getDiskStats(dirPath: string): DiskStats | null {
+export function getDiskStats(dirPath: string, force = false): DiskStats | null {
   try {
     const key = path.resolve(dirPath);
     const cached = diskStatsCache.get(key);
-    if (cached && Date.now() - cached.at < DISK_STATS_TTL_MS) return cached.stats;
+    if (!force && cached && Date.now() - cached.at < DISK_STATS_TTL_MS) return cached.stats;
 
     // Ensure path exists so we target the right volume (primary only — callers
     // should not call this for an unmounted replica).
@@ -394,18 +408,12 @@ export function setOverrideMode(mode: 'on' | 'off' | 'auto') {
   }
 }
 
-let writeRootCache: {
-  at: number;
-  value: { root: string; isOverflow: boolean; overrideMode: 'on' | 'off' | 'auto' };
-} | null = null;
-const WRITE_ROOT_TTL_MS = 30_000;
-
 /**
  * Returns true when primary volume free space is critically low.
  * Falls back to false if stats can't be read (never blocks an upload).
  */
 export function isPrimaryNearFull(): boolean {
-  const stats = getDiskStats(getPrimaryPath());
+  const stats = getDiskStats(getPrimaryPath(), true);
   if (!stats) return false;
   return stats.freeGB < overflowFreeGB() || stats.percentage >= overflowPercent();
 }
@@ -426,17 +434,14 @@ export function hasStorageRoom(): boolean {
 /**
  * Decides the active write root: replica if primary is critically low on space
  * and replica is available, otherwise primary. Respects manual override flag.
- * Cached ~30s so uploads don't re-run disk helpers every file.
+ * Rechecks replica reachability for each upload, so a disconnected SSD is
+ * never selected from a stale cached decision.
  */
 export function getWriteRoot(): {
   root: string;
   isOverflow: boolean;
   overrideMode: 'on' | 'off' | 'auto';
 } {
-  if (writeRootCache && Date.now() - writeRootCache.at < WRITE_ROOT_TTL_MS) {
-    return writeRootCache.value;
-  }
-
   const overrideMode = getOverrideMode();
   const replicaReady = !!getReplicaPath() && isReplicaAvailable();
 
@@ -450,7 +455,6 @@ export function getWriteRoot(): {
       ? { root: getReplicaPath()!, isOverflow: true, overrideMode }
       : { root: getPrimaryPath(), isOverflow: false, overrideMode };
 
-  writeRootCache = { at: Date.now(), value };
   return value;
 }
 
@@ -693,7 +697,13 @@ export function syncMissingFiles(
 
 // ── Orphan cleanup (files on disk with no DB row) ───────────────────────────
 
-const COVER_NAMES = new Set(['cover.bin', 'cover_meta.json']);
+/** Event art is not an Upload row. Never treat these as leftover files. */
+const EVENT_ASSET_NAMES = new Set([
+  'cover.bin',
+  'cover_meta.json',
+  'banner.bin',
+  'banner_meta.json',
+]);
 
 export interface KnownUpload {
   id: string;
@@ -725,10 +735,11 @@ export function allowedRelativePaths(uploads: KnownUpload[]): Set<string> {
     for (const p of expectedPathsForUpload(u)) allowed.add(p);
   }
 
-  // Event cover images are not in the Upload table
+  // Cover and hero banner are not in the Upload table
   for (const eventId of eventIds) {
-    allowed.add(`events/${eventId}/metadata/cover.bin`);
-    allowed.add(`events/${eventId}/metadata/cover_meta.json`);
+    for (const name of EVENT_ASSET_NAMES) {
+      allowed.add(`events/${eventId}/metadata/${name}`);
+    }
   }
 
   return allowed;
@@ -766,7 +777,7 @@ export function findOrphanRelativePaths(uploads: KnownUpload[]): OrphanReport {
   const orphans: string[] = [];
   for (const rel of onDisk) {
     const base = path.basename(rel);
-    if (COVER_NAMES.has(base)) continue;
+    if (EVENT_ASSET_NAMES.has(base)) continue;
     if (!allowedUnderEvents.has(rel)) orphans.push(rel);
   }
 
@@ -796,7 +807,7 @@ export function purgeOrphanFiles(orphanRelsUnderEvents: string[]): {
 
   for (const rel of orphanRelsUnderEvents) {
     const base = path.basename(rel);
-    if (COVER_NAMES.has(base)) continue;
+    if (EVENT_ASSET_NAMES.has(base)) continue;
 
     const primaryPath = path.join(getPrimaryPath(), 'events', rel);
     const _repP = getReplicaPath();
@@ -839,7 +850,7 @@ export function filterToAllowedEventRels(
   );
   return eventRels.filter((rel) => {
     const base = path.basename(rel);
-    if (COVER_NAMES.has(base)) return true;
+    if (EVENT_ASSET_NAMES.has(base)) return true;
     return allowedUnderEvents.has(rel);
   });
 }

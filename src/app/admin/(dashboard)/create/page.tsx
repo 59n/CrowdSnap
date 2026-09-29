@@ -64,7 +64,7 @@ export default function CreateEventPage() {
   ];
 
   return (
-    <div className="max-w-2xl space-y-6">
+    <div className="max-w-2xl space-y-4 sm:space-y-6">
       {/* Header */}
       <div className="flex items-center gap-3">
         <Button variant="ghost" size="icon" asChild className="rounded-full h-8 w-8 shrink-0">
@@ -73,16 +73,16 @@ export default function CreateEventPage() {
           </Link>
         </Button>
         <div>
-          <h1 className="text-xl font-bold tracking-tight">{t("createEvent.title")}</h1>
+          <h1 className="text-lg sm:text-xl font-bold tracking-tight">{t("createEvent.title")}</h1>
           <p className="text-xs text-muted-foreground mt-0.5">{t("createEvent.desc")}</p>
         </div>
       </div>
 
-      <Card className="border-border/60 shadow-sm">
-        <CardContent className="pt-6">
-          <form onSubmit={handleSubmit} className="space-y-6">
+      <Card className="border-border/60 shadow-xs">
+        <CardContent className="p-4 sm:p-6">
+          <form onSubmit={handleSubmit} className="space-y-5 sm:space-y-6">
             {/* Event basics */}
-            <div className="space-y-4">
+            <div className="space-y-3 sm:space-y-4">
               <div className="space-y-1.5">
                 <Label htmlFor="name" className="text-sm font-medium">
                   {t("createEvent.eventName")}
@@ -115,12 +115,12 @@ export default function CreateEventPage() {
             <Separator className="border-border/40" />
 
             {/* Date & settings */}
-            <div className="space-y-4">
+            <div className="space-y-3 sm:space-y-4">
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
                 <CalendarDays className="w-3.5 h-3.5" /> Settings
               </p>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <div className="space-y-1.5">
                   <Label htmlFor="date" className="text-sm font-medium">
                     {t("createEvent.eventDate")}
@@ -136,60 +136,56 @@ export default function CreateEventPage() {
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label htmlFor="maxSize" className="text-sm font-medium flex items-center gap-1.5">
-                    <FileUp className="w-3.5 h-3.5" /> {t("editEvent.maxFileSize")}
-                  </Label>
-                  <div className="relative">
-                    <Input
-                      id="maxSize"
-                      type="number"
-                      min={MIN_MAX_FILE_MB}
-                      max={MAX_MAX_FILE_MB}
-                      value={formData.maxFileSizeMB}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          maxFileSizeMB: parseInt(e.target.value, 10) || 100,
-                        })
-                      }
-                      required
-                      className="h-9 pr-12"
-                    />
-                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">MB</span>
-                  </div>
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label className="text-sm font-medium flex items-center gap-1.5">
-                    <Globe className="w-3.5 h-3.5" /> {t("createEvent.guestLanguage")}
+                  <Label htmlFor="language" className="text-sm font-medium flex items-center gap-1">
+                    <Globe className="w-3.5 h-3.5 text-muted-foreground" />
+                    {t("createEvent.defaultLanguage")}
                   </Label>
                   <Select
                     value={formData.language}
-                    onValueChange={(value) => setFormData({ ...formData, language: value })}
+                    onValueChange={(val) => setFormData({ ...formData, language: val })}
                   >
-                    <SelectTrigger className="h-9">
+                    <SelectTrigger id="language" className="h-9">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {languages.map((lang) => (
-                        <SelectItem key={lang.value} value={lang.value}>
-                          {lang.label}
+                      {languages.map((l) => (
+                        <SelectItem key={l.value} value={l.value}>
+                          {l.label}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
+
+                <div className="space-y-1.5 sm:col-span-2">
+                  <Label htmlFor="maxFileSize" className="text-sm font-medium flex items-center gap-1">
+                    <FileUp className="w-3.5 h-3.5 text-muted-foreground" />
+                    {t("createEvent.maxFileSize")}
+                  </Label>
+                  <div className="flex items-center gap-3">
+                    <Input
+                      id="maxFileSize"
+                      type="number"
+                      min={MIN_MAX_FILE_MB}
+                      max={MAX_MAX_FILE_MB}
+                      value={formData.maxFileSizeMB}
+                      onChange={(e) => setFormData({ ...formData, maxFileSizeMB: Number(e.target.value) })}
+                      className="h-9 w-32"
+                    />
+                    <span className="text-xs text-muted-foreground">
+                      {t("createEvent.maxFileSizeHint", { min: MIN_MAX_FILE_MB, max: MAX_MAX_FILE_MB })}
+                    </span>
+                  </div>
+                </div>
               </div>
             </div>
 
-            <Separator className="border-border/40" />
-
-            <div className="flex justify-end gap-3">
-              <Button type="button" variant="outline" size="sm" asChild>
-                <Link href="/admin">{t("createEvent.cancel") ?? "Cancel"}</Link>
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <Button variant="outline" size="sm" asChild className="flex-1 sm:flex-initial">
+                <Link href="/admin">{t("createEvent.cancel")}</Link>
               </Button>
-              <Button type="submit" disabled={loading} size="sm">
-                {loading ? t("createEvent.creating") : t("createEvent.createEvent")}
+              <Button type="submit" size="sm" disabled={loading} className="flex-1 sm:flex-initial">
+                {loading ? t("createEvent.creating") : t("createEvent.submit")}
               </Button>
             </div>
           </form>

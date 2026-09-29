@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import prisma from '@/lib/db';
 import fs from 'fs';
-import { Readable } from 'stream';
+import { webStreamFromNode } from '@/lib/web-stream';
 import { resolveReadPath, deleteUploadFiles } from '@/lib/storage';
 import { isSafeId } from '@/lib/path-safe';
 
@@ -36,7 +36,7 @@ export async function GET(
     const stat = fs.statSync(filePath);
     const nodeStream = fs.createReadStream(filePath);
     
-    const webStream = Readable.toWeb(nodeStream);
+    const webStream = webStreamFromNode(nodeStream);
 
     return new NextResponse(webStream as unknown as BodyInit, {
       headers: {

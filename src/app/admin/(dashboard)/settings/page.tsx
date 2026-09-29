@@ -4,9 +4,10 @@ import { getDictionary, getLocale } from "@/lib/i18n";
 export default async function SettingsPage() {
   const locale = await getLocale();
   const dict = await getDictionary(locale);
-  const t = (dict as any).settings ?? {
+  const settingsDict = dict && typeof dict === "object" && "settings" in dict ? (dict as Record<string, { title?: string; subtitle?: string }>).settings : undefined;
+  const t = settingsDict ?? {
     title: "Settings",
-    subtitle: "Manage storage, auth, and server configuration without editing .env by hand.",
+    subtitle: "Manage storage, critical alerts, auth, and server configuration without editing .env by hand.",
   };
 
   return (
